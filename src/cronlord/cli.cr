@@ -6,13 +6,16 @@ module CronLord
       cronlord — visual cron scheduler
 
       commands:
-        serve                      run the scheduler + HTTP API
+        serve | server             run the scheduler + HTTP API
         migrate                    apply pending SQL migrations
         job list                   list all jobs
         job add --schedule S --command C [--name N] [--id I]
         job rm <id>                delete a job
         job run <id>               trigger a job immediately
         runs [--job ID] [--limit N]
+        worker register <name> [--label L]...
+        worker list
+        worker rm <id>
 
       options:
         -c, --config PATH          path to cronlord.toml (default: ./cronlord.toml)
@@ -63,10 +66,11 @@ module CronLord
       sync_file_jobs(cfg)
 
       case rest.first
-      when "serve"   then cmd_serve(cfg)
-      when "migrate" then cmd_migrate(cfg)
-      when "job"     then cmd_job(cfg, rest[1..])
-      when "runs"    then cmd_runs(rest[1..])
+      when "serve", "server" then cmd_serve(cfg)
+      when "migrate"         then cmd_migrate(cfg)
+      when "job"             then cmd_job(cfg, rest[1..])
+      when "runs"            then cmd_runs(rest[1..])
+      when "worker"          then cmd_worker(rest[1..])
       else
         STDERR.puts "unknown command: #{rest.first}"
         puts USAGE
@@ -75,8 +79,11 @@ module CronLord
     end
 
     private def self.cmd_serve(cfg : Config) : Int32
+      Reaper.reap_zombies!
+
       scheduler = Scheduler.new(cfg)
       spawn { scheduler.run }
+      spawn { Reaper.run_log_reaper(cfg) }
 
       Signal::INT.trap do
         STDERR.puts "\n[cronlord] shutting down"
@@ -89,6 +96,44 @@ module CronLord
       server = Server.new(cfg, scheduler)
       server.start
       0
+    end
+
+    private def self.cmd_worker(argv : Array(String)) : Int32
+      case argv.first?
+      when "register"
+        name = argv[1]?
+        unless name
+          STDERR.puts "usage: cronlord worker register <name> [--label L]..."
+          return 2
+        end
+        labels = [] of String
+        OptionParser.parse(argv[2..]) do |op|
+          op.on("--label=L", "add a label (repeatable)") { |v| labels << v }
+        end
+        worker, secret = Worker.register(name, labels: labels)
+        puts "id:     #{worker.id}"
+        puts "name:   #{worker.name}"
+        puts "secret: #{secret}"
+        STDERR.puts "note: the secret above is shown ONCE — store it on the worker host now."
+        0
+      when "list"
+        Worker.all.each do |w|
+          seen = w.last_seen ? Time.unix(w.last_seen.not_nil!).to_s("%F %T") : "never"
+          puts "%-36s %-24s %-6s %s" % [w.id, w.name, (w.enabled ? "on" : "off"), seen]
+        end
+        0
+      when "rm"
+        id = argv[1]?
+        unless id
+          STDERR.puts "usage: cronlord worker rm <id>"
+          return 2
+        end
+        puts(Worker.delete(id) ? "deleted" : "not_found")
+        0
+      else
+        STDERR.puts "worker subcommands: register <name> | list | rm <id>"
+        1
+      end
     end
 
     private def self.cmd_migrate(cfg : Config) : Int32

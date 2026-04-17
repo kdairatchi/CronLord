@@ -47,6 +47,11 @@ module CronLord
         {"version" => CronLord::VERSION}.to_json
       end
 
+      get "/metrics" do |env|
+        env.response.content_type = "text/plain; version=0.0.4"
+        Metrics.render(sched)
+      end
+
       get "/api/jobs" do |env|
         next unless require_token(env, cfg)
         env.response.content_type = "application/json"
