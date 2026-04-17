@@ -19,6 +19,10 @@ module CronLord
       @@db || raise "CronLord::DB not opened; call DB.open first"
     end
 
+    def self.opened? : Bool
+      !@@db.nil?
+    end
+
     def self.close
       @@db.try(&.close)
       @@db = nil

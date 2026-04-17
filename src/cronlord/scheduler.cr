@@ -101,8 +101,12 @@ module CronLord
         case job.kind
         when "shell"
           Runner::Shell.run(job, run, buffer)
+        when "http"
+          Runner::Http.run(job, run, buffer)
+        when "claude"
+          Runner::Claude.run(job, run, buffer)
         else
-          buffer.write("unsupported job kind '#{job.kind}' — v1 ships shell only", :meta)
+          buffer.write("unsupported job kind '#{job.kind}'", :meta)
           run.mark_finished("fail", 127, "unsupported kind #{job.kind}")
         end
       rescue ex
@@ -111,6 +115,36 @@ module CronLord
       ensure
         buffer.close rescue nil
         @active_mu.synchronize { @active[job.id] -= 1 }
+        after_run(job, run)
+      end
+    end
+
+    # Post-run hooks: webhook delivery and retry scheduling.
+    private def after_run(job : Job, run : Run)
+      Notifier.deliver(job, run)
+      schedule_retry(job, run) if should_retry?(job, run)
+    end
+
+    private def should_retry?(job : Job, run : Run) : Bool
+      return false if job.retry_count <= 0
+      return false if run.trigger.starts_with?("retry")
+      return false if run.status == "success"
+      run.attempt <= job.retry_count
+    end
+
+    private def schedule_retry(job : Job, prev : Run)
+      attempt = prev.attempt + 1
+      # exponential backoff, cap at 30 minutes
+      base = job.retry_delay_sec > 0 ? job.retry_delay_sec : 30
+      delay_sec = Math.min(base * (1 << (attempt - 2)), 1800)
+      STDERR.puts "[scheduler] retry job=#{job.id} attempt=#{attempt} in=#{delay_sec}s"
+      spawn do
+        sleep delay_sec.seconds
+        log_path = run_log_path(job)
+        run = Run.create(job.id, log_path, trigger: "retry-#{attempt}")
+        run.attempt = attempt
+        DB.conn.exec("UPDATE runs SET attempt=? WHERE id=?", attempt, run.id)
+        execute(job, run)
       end
     end
 

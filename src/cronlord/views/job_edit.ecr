@@ -67,11 +67,20 @@
       <div class="field">
         <label>Command</label>
         <textarea name="command" rows="6" class="mono" required><%= job.command %></textarea>
-        <div class="help">Shell jobs execute via <code>/bin/sh -c</code>. Be mindful — this is full shell power.</div>
+        <div class="help">
+          <strong>shell</strong>: command runs under <code>/bin/sh -c</code>.
+          <strong>http</strong>: URL or JSON <code>{method,url,headers,body,expect_status}</code>.
+          <strong>claude</strong>: prompt passed to <code>claude -p</code>.
+        </div>
       </div>
       <div class="field">
         <label>Working directory</label>
         <input name="working_dir" value="<%= job.working_dir %>" placeholder="/srv/myapp">
+      </div>
+      <div class="field">
+        <label>Webhook URL (optional)</label>
+        <input name="webhook_url" value="<%= webhook_url %>" placeholder="https://hooks.example.com/cronlord">
+        <div class="help">Called with JSON payload when a run finishes.</div>
       </div>
     </div>
 

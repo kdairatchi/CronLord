@@ -21,7 +21,7 @@ module CronLord
     end
   end
 
-  struct Run
+  class Run
     include JSON::Serializable
 
     property id : String

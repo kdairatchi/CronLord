@@ -218,6 +218,7 @@ module CronLord
         schedule_next = Cron.parse(job.schedule).next_after(Time.utc).try(&.to_s("%F %H:%M UTC")) || "—"
         recent_runs = [] of Run
         status_class = ->(s : String) { ViewHelpers.status_class(s) }
+        webhook_url = job.args["webhook_url"]?.try(&.as_s?) || ""
         render "src/cronlord/views/job_edit.ecr", "src/cronlord/views/layout.ecr"
       end
 
@@ -237,6 +238,7 @@ module CronLord
         schedule_next = (Cron.parse(job.schedule).next_after(Time.utc).try(&.to_s("%F %H:%M UTC")) rescue nil) || "—"
         recent_runs = Run.recent(job_id: job.id, limit: 15)
         status_class = ->(s : String) { ViewHelpers.status_class(s) }
+        webhook_url = job.args["webhook_url"]?.try(&.as_s?) || ""
         render "src/cronlord/views/job_edit.ecr", "src/cronlord/views/layout.ecr"
       end
 
@@ -409,6 +411,13 @@ module CronLord
       job.retry_count = form["retry_count"]?.try(&.to_i32?) || 0
       job.enabled = form["enabled"]? != "0"
       job.source = base.try(&.source) || "api"
+      webhook = form["webhook_url"]?.try(&.strip)
+      if webhook && !webhook.empty?
+        job.args["webhook_url"] = JSON::Any.new(webhook)
+      else
+        job.args.delete("webhook_url")
+      end
+      job.working_dir = form["working_dir"]?.presence
       job
     end
 
