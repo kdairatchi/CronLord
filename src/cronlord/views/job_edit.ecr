@@ -82,6 +82,12 @@
         <input name="webhook_url" value="<%= webhook_url %>" placeholder="https://hooks.example.com/cronlord">
         <div class="help">Called with JSON payload when a run finishes.</div>
       </div>
+      <div class="field">
+        <label>Slack webhook URL (optional)</label>
+        <input name="slack_webhook_url" value="<%= slack_webhook_url %>"
+               placeholder="https://hooks.slack.com/services/...">
+        <div class="help">Rich Slack message on every run. Must start with <code>https://hooks.slack.com/</code>.</div>
+      </div>
     </div>
 
     <div class="card">
