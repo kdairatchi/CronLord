@@ -34,5 +34,23 @@ module CronLord
       # script. Server-side default respects `data-theme` attr for SSR.
       "light"
     end
+
+    def action_class(action : String) : String
+      case action
+      when .ends_with?(".delete")  then "fail"
+      when .ends_with?(".create")  then "ok"
+      when .ends_with?(".update")  then "info"
+      when .ends_with?(".run")     then "info"
+      else                              "mute"
+      end
+    end
+
+    def meta_summary(entry : Audit) : String
+      return "" if entry.meta.empty?
+      entry.meta.map { |k, v|
+        val = v.as_s? || v.as_i64?.try(&.to_s) || v.to_json
+        "#{k}=#{val}"
+      }.join(" · ")
+    end
   end
 end

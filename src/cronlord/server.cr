@@ -73,7 +73,11 @@ module CronLord
           env.response.status_code = 400
           next({"error" => "missing id/name/schedule/command"}.to_json)
         end
+        existed = Job.find(job.id)
         job.upsert
+        Audit.write(existed ? "job.update" : "job.create", actor: "api",
+          target: "job:#{job.id}",
+          meta: {"name" => JSON::Any.new(job.name), "kind" => JSON::Any.new(job.kind)})
         sched.kick
         env.response.content_type = "application/json"
         env.response.status_code = 201
@@ -88,6 +92,8 @@ module CronLord
           next({"error" => "not_found"}.to_json)
         end
         run = sched.trigger_now(job, trigger: "api")
+        Audit.write("job.run", actor: "api", target: "job:#{job.id}",
+          meta: {"run_id" => JSON::Any.new(run.id)})
         env.response.content_type = "application/json"
         env.response.status_code = 202
         run.to_json
@@ -95,8 +101,12 @@ module CronLord
 
       delete "/api/jobs/:id" do |env|
         next unless require_token(env, cfg)
-        deleted = Job.delete(env.params.url["id"])
-        sched.kick if deleted
+        id = env.params.url["id"]
+        deleted = Job.delete(id)
+        if deleted
+          Audit.write("job.delete", actor: "api", target: "job:#{id}")
+          sched.kick
+        end
         env.response.content_type = "application/json"
         {"deleted" => deleted}.to_json
       end
@@ -246,6 +256,8 @@ module CronLord
         form = env.params.body
         job = job_from_form(form)
         job.upsert
+        Audit.write("job.create", actor: "ui", target: "job:#{job.id}",
+          meta: {"name" => JSON::Any.new(job.name), "kind" => JSON::Any.new(job.kind)})
         sched.kick
         env.redirect "/jobs/#{job.id}"
       end
@@ -259,6 +271,8 @@ module CronLord
         form = env.params.body
         job = job_from_form(form, base: existing)
         job.upsert
+        Audit.write("job.update", actor: "ui", target: "job:#{job.id}",
+          meta: {"name" => JSON::Any.new(job.name), "kind" => JSON::Any.new(job.kind)})
         sched.kick
         env.redirect "/jobs/#{job.id}"
       end
@@ -270,12 +284,17 @@ module CronLord
           next "Not found"
         end
         run = sched.trigger_now(job, trigger: "ui")
+        Audit.write("job.run", actor: "ui", target: "job:#{job.id}",
+          meta: {"run_id" => JSON::Any.new(run.id)})
         env.redirect "/runs/#{run.id}"
       end
 
       post "/jobs/:id/delete" do |env|
-        Job.delete(env.params.url["id"])
-        sched.kick
+        id = env.params.url["id"]
+        if Job.delete(id)
+          Audit.write("job.delete", actor: "ui", target: "job:#{id}")
+          sched.kick
+        end
         env.redirect "/jobs"
       end
 
@@ -315,6 +334,17 @@ module CronLord
         status_class = ->(s : String) { ViewHelpers.status_class(s) }
         initial_log = File.exists?(run.log_path) ? File.read(run.log_path) : ""
         render "src/cronlord/views/run_show.ecr", "src/cronlord/views/layout.ecr"
+      end
+
+      get "/audit" do |env|
+        page_title = "Audit"
+        nav_active = "audit"
+        show_new_job = false
+        theme = "light"
+        entries = Audit.recent(limit: 500)
+        action_class = ->(action : String) { ViewHelpers.action_class(action) }
+        meta_summary = ->(entry : Audit) { ViewHelpers.meta_summary(entry) }
+        render "src/cronlord/views/audit.ecr", "src/cronlord/views/layout.ecr"
       end
 
       get "/settings" do |env|

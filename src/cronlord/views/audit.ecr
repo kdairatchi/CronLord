@@ -1,0 +1,35 @@
+<div class="toolbar">
+  <span class="muted small"><%= entries.size %> entries</span>
+  <div style="flex:1"></div>
+  <span class="muted small">Most recent first</span>
+</div>
+
+<div class="card" style="padding:0;">
+<table class="table">
+  <thead>
+    <tr>
+      <th style="width:180px;">When</th>
+      <th style="width:120px;">Actor</th>
+      <th style="width:160px;">Action</th>
+      <th>Target</th>
+      <th>Detail</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% entries.each do |entry| %>
+      <tr>
+        <td class="mono"><%= entry.at_time.to_s("%F %H:%M:%S") %></td>
+        <td><span class="badge mute"><%= entry.actor %></span></td>
+        <td><span class="badge <%= action_class.call(entry.action) %>"><%= entry.action %></span></td>
+        <td class="mono small"><%= entry.target || "—" %></td>
+        <td class="mono small muted"><%= meta_summary.call(entry) %></td>
+      </tr>
+    <% end %>
+    <% if entries.empty? %>
+      <tr><td colspan="5" class="muted" style="padding:24px;text-align:center;">
+        No audit entries yet. Mutating an object creates one.
+      </td></tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
