@@ -1,0 +1,20 @@
+/lib/
+/bin/
+/.shards/
+*.dwarf
+
+# runtime state
+/var/
+*.db
+*.db-wal
+*.db-shm
+
+# local config
+cronlord.local.toml
+.env
+.env.*
+
+# editor
+.vscode/
+.idea/
+*.swp

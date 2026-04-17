@@ -1,0 +1,14 @@
+[server]
+host = "127.0.0.1"
+port = 7070
+
+[storage]
+data_dir = "var"
+
+[[jobs]]
+id       = "demo-echo"
+name     = "Heartbeat"
+schedule = "*/1 * * * *"
+command  = "date -u"
+kind     = "shell"
+enabled  = true

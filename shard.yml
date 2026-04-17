@@ -1,0 +1,33 @@
+name: cronlord
+version: 0.1.0
+
+description: |
+  CronLord — a visual, self-hosted cron scheduler in a single Crystal binary.
+  Scheduler, web UI, API, and worker protocol in one static executable.
+
+authors:
+  - kdairatchi <96064915+kdairatchi@users.noreply.github.com>
+
+crystal: ">= 1.19.0"
+
+license: MIT
+
+targets:
+  cronlord:
+    main: src/cronlord/main.cr
+
+dependencies:
+  kemal:
+    github: kemalcr/kemal
+    version: ~> 1.9
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
+    version: ~> 0.9
+  toml:
+    github: crystal-community/crystal-toml
+    version: ~> 0.8
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: ~> 1.6
