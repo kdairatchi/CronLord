@@ -106,6 +106,22 @@
           <option value="0" <%= job.enabled ? "" : "selected" %>>paused</option>
         </select>
       </div>
+      <div class="field">
+        <label>Executor</label>
+        <select name="executor">
+          <option value="local"  <%= job.executor == "local"  ? "selected" : "" %>>local (in-process)</option>
+          <option value="worker" <%= job.executor == "worker" ? "selected" : "" %>>worker (remote)</option>
+        </select>
+        <div class="help">
+          <strong>local</strong>: scheduler runs the command itself.
+          <strong>worker</strong>: a registered worker polls <code>/api/workers/lease</code>.
+        </div>
+      </div>
+      <div class="field">
+        <label>Worker labels</label>
+        <input name="labels" value="<%= job.labels.join(", ") %>" placeholder="linux, gpu">
+        <div class="help">Comma-separated. A worker must advertise at least one matching label.</div>
+      </div>
     </div>
   </div>
 

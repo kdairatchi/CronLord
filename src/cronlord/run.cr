@@ -34,6 +34,9 @@ module CronLord
     property log_path : String
     property trigger : String = "schedule"
     property error : String? = nil
+    property worker_id : String? = nil
+    property lease_expires_at : Int64? = nil
+    property heartbeat_at : Int64? = nil
 
     def initialize(@id, @job_id, @status, @log_path)
     end
@@ -68,9 +71,12 @@ module CronLord
         status, @finished_at, exit_code, error, @id)
     end
 
+    COLUMNS = "id,job_id,status,started_at,finished_at,exit_code,attempt,log_path," \
+              "trigger,error,worker_id,lease_expires_at,heartbeat_at"
+
     def self.recent(job_id : String? = nil, limit : Int32 = 100, db = DB.conn) : Array(Run)
       out = [] of Run
-      sql = "SELECT id,job_id,status,started_at,finished_at,exit_code,attempt,log_path,trigger,error FROM runs"
+      sql = "SELECT #{COLUMNS} FROM runs"
       sql += " WHERE job_id = ?" if job_id
       sql += " ORDER BY COALESCE(started_at, 0) DESC LIMIT ?"
       args = [] of ::DB::Any
@@ -78,6 +84,61 @@ module CronLord
       args << limit
       db.query_each(sql, args: args) { |rs| out << hydrate(rs) }
       out
+    end
+
+    def self.find(id : String, db = DB.conn) : Run?
+      db.query_one?("SELECT #{COLUMNS} FROM runs WHERE id = ?", id) { |rs| hydrate(rs) }
+    end
+
+    # Atomically lease the oldest queued run that matches this worker. The
+    # UPDATE is the lease acquire; the subsequent SELECT returns the row we
+    # just claimed. sqlite doesn't support RETURNING in every distribution
+    # so we read back explicitly.
+    def self.try_lease!(worker_id : String, lease_sec : Int32, candidate_ids : Array(String),
+                        db = DB.conn) : Run?
+      return nil if candidate_ids.empty?
+      expires = Time.utc.to_unix + lease_sec
+      now = Time.utc.to_unix
+      placeholders = Array.new(candidate_ids.size, "?").join(",")
+      # Pick the oldest unassigned queued run whose job is in the candidate set.
+      row_id = db.query_one?(
+        "SELECT id FROM runs WHERE status='queued' AND worker_id IS NULL " \
+        "AND job_id IN (#{placeholders}) " \
+        "ORDER BY COALESCE(started_at, 0) ASC, id ASC LIMIT 1",
+        args: candidate_ids.map { |id| id.as(::DB::Any) }
+      ) { |rs| rs.read(String) }
+      return nil unless row_id
+
+      updated = db.exec(
+        "UPDATE runs SET worker_id=?, lease_expires_at=?, heartbeat_at=?, status='running', started_at=? " \
+        "WHERE id=? AND status='queued' AND worker_id IS NULL",
+        worker_id, expires, now, now, row_id).rows_affected
+      return nil if updated == 0
+      find(row_id, db)
+    end
+
+    def heartbeat!(lease_sec : Int32, db = DB.conn) : Nil
+      now = Time.utc.to_unix
+      @heartbeat_at = now
+      @lease_expires_at = now + lease_sec
+      db.exec(
+        "UPDATE runs SET heartbeat_at=?, lease_expires_at=? WHERE id=? AND worker_id=?",
+        @heartbeat_at, @lease_expires_at, @id, @worker_id)
+    end
+
+    # Worker reports a terminal status. Clears lease columns so the reaper
+    # doesn't try to re-queue a finished run.
+    def finish_from_worker!(status : String, exit_code : Int32?, error : String?,
+                            db = DB.conn) : Nil
+      @status = status
+      @exit_code = exit_code
+      @error = error
+      @finished_at = Time.utc.to_unix
+      @lease_expires_at = nil
+      db.exec(
+        "UPDATE runs SET status=?, finished_at=?, exit_code=?, error=?, lease_expires_at=NULL " \
+        "WHERE id=?",
+        status, @finished_at, exit_code, error, @id)
     end
 
     private def self.hydrate(rs) : Run
@@ -94,6 +155,9 @@ module CronLord
       r.log_path = rs.read(String)
       r.trigger = rs.read(String)
       r.error = rs.read(String?)
+      r.worker_id = rs.read(String?)
+      r.lease_expires_at = rs.read(Int64?)
+      r.heartbeat_at = rs.read(Int64?)
       r
     end
   end

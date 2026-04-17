@@ -84,6 +84,7 @@ module CronLord
       scheduler = Scheduler.new(cfg)
       spawn { scheduler.run }
       spawn { Reaper.run_log_reaper(cfg) }
+      spawn { Reaper.run_lease_reaper }
 
       Signal::INT.trap do
         STDERR.puts "\n[cronlord] shutting down"

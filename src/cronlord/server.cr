@@ -136,6 +136,88 @@ module CronLord
         stream_log(env, run)
       end
 
+      # ---- worker protocol (HMAC-signed; bearer token NOT required) -------
+      # The worker's secret_hash is itself the HMAC key. See
+      # src/cronlord/auth/worker_auth.cr for the full contract.
+
+      post "/api/workers/lease" do |env|
+        body = env.request.body.try(&.gets_to_end) || ""
+        worker = authenticate_worker(env, body)
+        next unless worker
+        payload = parse_body_raw(body)
+        lease_sec = payload.try(&.["lease_sec"]?).try(&.as_i?) || 60
+        run = dispatch_lease(worker, lease_sec)
+        env.response.content_type = "application/json"
+        if run.nil?
+          env.response.status_code = 204
+          next
+        end
+        job = Job.find(run.job_id)
+        {
+          "run_id"            => run.id,
+          "job"               => job,
+          "lease_expires_at"  => run.lease_expires_at,
+          "heartbeat_every"   => lease_sec // 2,
+        }.to_json
+      end
+
+      post "/api/workers/heartbeat" do |env|
+        body = env.request.body.try(&.gets_to_end) || ""
+        worker = authenticate_worker(env, body)
+        next unless worker
+        payload = parse_body_raw(body)
+        run_id = payload.try(&.["run_id"]?).try(&.as_s?)
+        lease_sec = payload.try(&.["lease_sec"]?).try(&.as_i?) || 60
+        unless run_id
+          env.response.status_code = 400
+          next({"error" => "run_id required"}.to_json)
+        end
+        run = Run.find(run_id)
+        if run.nil? || run.worker_id != worker.id
+          env.response.status_code = 404
+          next({"error" => "run not leased by this worker"}.to_json)
+        end
+        run.heartbeat!(lease_sec)
+        env.response.content_type = "application/json"
+        {"lease_expires_at" => run.lease_expires_at}.to_json
+      end
+
+      post "/api/workers/finish" do |env|
+        body = env.request.body.try(&.gets_to_end) || ""
+        worker = authenticate_worker(env, body)
+        next unless worker
+        payload = parse_body_raw(body)
+        run_id = payload.try(&.["run_id"]?).try(&.as_s?)
+        status = payload.try(&.["status"]?).try(&.as_s?) || "fail"
+        exit_code = payload.try(&.["exit_code"]?).try(&.as_i?)
+        error = payload.try(&.["error"]?).try(&.as_s?)
+        log_blob = payload.try(&.["log"]?).try(&.as_s?)
+        unless run_id
+          env.response.status_code = 400
+          next({"error" => "run_id required"}.to_json)
+        end
+        run = Run.find(run_id)
+        if run.nil? || run.worker_id != worker.id
+          env.response.status_code = 404
+          next({"error" => "run not leased by this worker"}.to_json)
+        end
+        if log_blob && !log_blob.empty?
+          begin
+            Dir.mkdir_p(File.dirname(run.log_path))
+            File.write(run.log_path, log_blob)
+          rescue ex
+            STDERR.puts "[workers/finish] log write failed: #{ex.message}"
+          end
+        end
+        run.finish_from_worker!(status, exit_code, error)
+        job = Job.find(run.job_id)
+        Notifier.deliver(job, run) if job
+        Audit.write("run.finish", actor: "worker:#{worker.id}", target: "run:#{run.id}",
+          meta: {"status" => JSON::Any.new(status)})
+        env.response.content_type = "application/json"
+        {"ok" => true}.to_json
+      end
+
       # Cron explain — powers the live preview in the job editor.
       get "/api/cron/explain" do |env|
         env.response.content_type = "application/json"
@@ -423,6 +505,13 @@ module CronLord
         env_any.as_h.each { |k, v| job.env[k] = v.as_s? || v.to_s }
       end
       job.source = h["source"]?.try(&.as_s?) || "api"
+      job.executor = h["executor"]?.try(&.as_s?) || "local"
+      if labels_any = h["labels"]?
+        job.labels = labels_any.as_a.compact_map { |v| v.as_s? }
+      end
+      job.retry_count = h["retry_count"]?.try(&.as_i?) || 0
+      job.retry_delay_sec = h["retry_delay_sec"]?.try(&.as_i?) || 30
+      job.working_dir = h["working_dir"]?.try(&.as_s?)
       job
     end
 
@@ -445,6 +534,9 @@ module CronLord
       job.max_concurrent = form["max_concurrent"]?.try(&.to_i32?) || 1
       job.retry_count = form["retry_count"]?.try(&.to_i32?) || 0
       job.enabled = form["enabled"]? != "0"
+      job.executor = (form["executor"]?.presence == "worker") ? "worker" : "local"
+      labels_raw = form["labels"]? || ""
+      job.labels = labels_raw.split(',').map(&.strip).reject(&.empty?)
       job.source = base.try(&.source) || "api"
       webhook = form["webhook_url"]?.try(&.strip)
       if webhook && !webhook.empty?
@@ -457,7 +549,43 @@ module CronLord
     end
 
     private def find_run(id : String) : Run?
-      Run.recent(limit: 2000).find { |r| r.id == id }
+      Run.find(id) || Run.recent(limit: 2000).find { |r| r.id == id }
+    end
+
+    private def authenticate_worker(env, body : String) : Worker?
+      Auth::WorkerAuth.authenticate(env, body)
+    rescue ex : Auth::WorkerAuth::AuthError
+      env.response.status_code = 401
+      env.response.content_type = "application/json"
+      env.response.print({"error" => ex.message}.to_json)
+      nil
+    end
+
+    private def parse_body_raw(body : String) : Hash(String, JSON::Any)?
+      return nil if body.empty?
+      JSON.parse(body).as_h
+    rescue
+      nil
+    end
+
+    # Pick the oldest queued run for a job this worker is eligible to
+    # execute. Eligibility: job.executor == "worker", enabled, and at least
+    # one matching label (or the job has no label requirements).
+    private def dispatch_lease(worker : Worker, lease_sec : Int32) : Run?
+      worker_labels = worker.labels
+      eligible_ids = Job.all.compact_map do |job|
+        next nil unless job.executor == "worker"
+        next nil unless job.enabled
+        next nil unless label_match?(job.labels, worker_labels)
+        job.id
+      end
+      return nil if eligible_ids.empty?
+      Run.try_lease!(worker.id, lease_sec, eligible_ids)
+    end
+
+    private def label_match?(required : Array(String), available : Array(String)) : Bool
+      return true if required.empty?
+      required.any? { |l| available.includes?(l) }
     end
   end
 end

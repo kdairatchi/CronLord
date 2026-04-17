@@ -78,7 +78,11 @@ module CronLord
     def trigger_now(job : Job, trigger : String = "manual") : Run
       log_path = run_log_path(job)
       run = Run.create(job.id, log_path, trigger: trigger)
-      spawn execute(job, run)
+      if job.executor == "worker"
+        STDERR.puts "[scheduler] queued #{job.id} for worker pool (run=#{run.id}, trigger=#{trigger})"
+      else
+        spawn execute(job, run)
+      end
       run
     end
 
@@ -90,7 +94,13 @@ module CronLord
       end
       log_path = run_log_path(job)
       run = Run.create(job.id, log_path, trigger: "schedule")
-      spawn execute(job, run)
+      if job.executor == "worker"
+        # Remote execution: leave the run in 'queued' for a worker to pick up
+        # via /api/workers/lease. Don't spawn an in-process runner.
+        STDERR.puts "[scheduler] queued #{job.id} for worker pool (run=#{run.id})"
+      else
+        spawn execute(job, run)
+      end
     end
 
     private def execute(job : Job, run : Run)

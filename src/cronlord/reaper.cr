@@ -35,6 +35,32 @@ module CronLord
       end
     end
 
+    # Any run whose lease_expires_at is in the past and whose status is
+    # still 'running' means the worker crashed or partitioned. Put it back
+    # in the queue so another worker picks it up. We keep the run row.
+    def expire_stale_leases!(db = DB.conn) : Int32
+      now = Time.utc.to_unix
+      res = db.exec(
+        "UPDATE runs SET status='queued', worker_id=NULL, lease_expires_at=NULL, started_at=NULL " \
+        "WHERE status='running' AND lease_expires_at IS NOT NULL AND lease_expires_at < ?",
+        now)
+      affected = res.rows_affected.to_i32
+      STDERR.puts "[reaper] re-queued #{affected} expired leases" if affected > 0
+      affected
+    end
+
+    # Background loop that polls for expired leases.
+    def run_lease_reaper(interval : Time::Span = 30.seconds) : Nil
+      loop do
+        begin
+          expire_stale_leases!
+        rescue ex
+          STDERR.puts "[reaper] lease expire failed: #{ex.class}: #{ex.message}"
+        end
+        sleep interval
+      end
+    end
+
     # Walk the log dir; delete files older than cutoff. Empty directories
     # stay — they're cheap and jobs may create new logs in them.
     def purge_logs(log_dir : String, cutoff_seconds : Int64) : Int32
