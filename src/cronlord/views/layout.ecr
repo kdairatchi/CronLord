@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= theme %>">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= page_title %> — CronLord</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23b88346'/%3E%3Cpath d='M10 16 L14 20 L22 12' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="mark"></span> CronLord</div>
+    <nav>
+      <a href="/" class="<%= nav_active == "overview" ? "active" : "" %>"><span class="dot"></span> Overview</a>
+      <a href="/jobs" class="<%= nav_active == "jobs" ? "active" : "" %>"><span class="dot"></span> Jobs</a>
+      <a href="/runs" class="<%= nav_active == "runs" ? "active" : "" %>"><span class="dot"></span> Runs</a>
+      <a href="/settings" class="<%= nav_active == "settings" ? "active" : "" %>"><span class="dot"></span> Settings</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="foot">
+      <span>v<%= CronLord::VERSION %></span>
+      <a href="https://github.com/kdairatchi/CronLord" target="_blank" rel="noopener">github</a>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <div class="title"><%= page_title %></div>
+    <div class="actions">
+      <button class="ghost theme-toggle" id="theme-toggle" title="toggle theme">theme</button>
+      <% if show_new_job %>
+        <a href="/jobs/new"><button class="primary">+ New job</button></a>
+      <% end %>
+    </div>
+  </header>
+
+  <main class="content">
+    <%= content %>
+  </main>
+</div>
+
+<script>
+  (function () {
+    const KEY = "cronlord-theme";
+    const saved = localStorage.getItem(KEY);
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+      const cur = document.documentElement.getAttribute("data-theme") || "light";
+      const next = cur === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem(KEY, next);
+    });
+  })();
+</script>
+</body>
+</html>

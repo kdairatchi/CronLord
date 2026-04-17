@@ -1,0 +1,44 @@
+<div class="toolbar">
+  <form method="get" action="/runs" class="row">
+    <select name="status" onchange="this.form.submit()">
+      <option value="">All statuses</option>
+      <% %w(running success fail timeout queued cancelled).each do |s| %>
+        <option value="<%= s %>" <%= status_filter == s ? "selected" : "" %>><%= s %></option>
+      <% end %>
+    </select>
+    <select name="job_id" onchange="this.form.submit()">
+      <option value="">All jobs</option>
+      <% jobs.each do |j| %>
+        <option value="<%= j.id %>" <%= job_filter == j.id ? "selected" : "" %>><%= j.name %></option>
+      <% end %>
+    </select>
+  </form>
+  <span class="muted small"><%= runs.size %> runs</span>
+</div>
+
+<div class="card" style="padding:0;">
+<table class="table">
+  <thead><tr><th>When</th><th>Job</th><th>Status</th><th>Duration</th><th>Exit</th><th>Trigger</th><th></th></tr></thead>
+  <tbody>
+    <% runs.each do |run| %>
+      <tr>
+        <td class="mono"><%= run.started_at ? Time.unix(run.started_at.not_nil!).to_s("%F %H:%M:%S") : "-" %></td>
+        <td>
+          <%= job_names[run.job_id]? || run.job_id %>
+          <div class="muted small mono"><%= run.job_id %></div>
+        </td>
+        <td><span class="badge <%= status_class(run.status) %>"><%= run.status %></span></td>
+        <td class="mono"><%= duration_for(run) %></td>
+        <td class="mono"><%= run.exit_code.to_s %></td>
+        <td><span class="badge mute"><%= run.trigger %></span></td>
+        <td style="text-align:right;">
+          <a href="/runs/<%= run.id %>"><button>Open log</button></a>
+        </td>
+      </tr>
+    <% end %>
+    <% if runs.empty? %>
+      <tr><td colspan="7" class="muted" style="padding:24px;text-align:center;">No runs match.</td></tr>
+    <% end %>
+  </tbody>
+</table>
+</div>

@@ -1,0 +1,45 @@
+<div class="toolbar">
+  <span class="muted small"><%= jobs.size %> jobs</span>
+  <div style="flex:1"></div>
+  <a href="/jobs/new"><button class="primary">+ New job</button></a>
+</div>
+
+<div class="card" style="padding:0;">
+<table class="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Schedule</th>
+      <th>Next</th>
+      <th>Status</th>
+      <th>Source</th>
+      <th style="text-align:right;">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% jobs.each do |(job, next_time)| %>
+      <tr>
+        <td>
+          <a href="/jobs/<%= job.id %>"><%= job.name %></a>
+          <div class="muted small mono"><%= job.id %></div>
+        </td>
+        <td class="mono"><%= job.schedule %></td>
+        <td class="mono"><%= next_time ? next_time.to_s("%F %H:%M") : "—" %></td>
+        <td><span class="badge <%= job.enabled ? "ok" : "mute" %>"><%= job.enabled ? "enabled" : "paused" %></span></td>
+        <td><span class="badge mute"><%= job.source %></span></td>
+        <td style="text-align:right;">
+          <form method="post" action="/jobs/<%= job.id %>/run" style="display:inline;">
+            <button>Run</button>
+          </form>
+          <a href="/jobs/<%= job.id %>"><button class="ghost">Edit</button></a>
+        </td>
+      </tr>
+    <% end %>
+    <% if jobs.empty? %>
+      <tr><td colspan="6" class="muted" style="padding:24px;text-align:center;">
+        No jobs yet. <a href="/jobs/new">Create your first one</a>.
+      </td></tr>
+    <% end %>
+  </tbody>
+</table>
+</div>

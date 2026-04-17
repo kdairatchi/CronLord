@@ -1,0 +1,44 @@
+<div class="grid cols-2">
+  <div class="card">
+    <h3>Server</h3>
+    <div class="small muted">Version</div>
+    <div class="mono"><%= CronLord::VERSION %></div>
+    <div class="small muted" style="margin-top:10px;">Listening</div>
+    <div class="mono"><%= cfg.listen_host %>:<%= cfg.listen_port %></div>
+    <div class="small muted" style="margin-top:10px;">Database</div>
+    <div class="mono"><%= cfg.db_path %></div>
+    <div class="small muted" style="margin-top:10px;">Logs</div>
+    <div class="mono"><%= cfg.log_dir %></div>
+  </div>
+
+  <div class="card">
+    <h3>Auth</h3>
+    <% if cfg.admin_token %>
+      <p>Admin token configured. Include it as <code>Authorization: Bearer &lt;token&gt;</code> on API calls.</p>
+    <% else %>
+      <p>No admin token configured. Set <code>CRONLORD_ADMIN_TOKEN</code> to gate the API in production.</p>
+    <% end %>
+  </div>
+
+  <div class="card" style="grid-column: 1 / -1;">
+    <h3>File-managed jobs</h3>
+    <% if cfg.file_jobs.empty? %>
+      <p class="muted">No <code>[[jobs]]</code> blocks defined in cronlord.toml.</p>
+    <% else %>
+      <table class="table">
+        <thead><tr><th>ID</th><th>Name</th><th>Schedule</th><th>Command</th></tr></thead>
+        <tbody>
+          <% cfg.file_jobs.each do |fj| %>
+            <tr>
+              <td class="mono"><%= fj.id %></td>
+              <td><%= fj.name %></td>
+              <td class="mono"><%= fj.schedule %></td>
+              <td class="mono"><%= fj.command %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+      <p class="small muted" style="margin-top:10px;">These are reconciled into the DB on every boot. Edit <code>cronlord.toml</code> to change them.</p>
+    <% end %>
+  </div>
+</div>

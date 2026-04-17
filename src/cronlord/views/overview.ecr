@@ -1,0 +1,46 @@
+<div class="grid cols-4">
+  <div class="card kpi"><div class="l">Enabled jobs</div><div class="v"><%= enabled_count %></div></div>
+  <div class="card kpi"><div class="l">Running now</div><div class="v"><%= running_count %></div></div>
+  <div class="card kpi"><div class="l">Runs 24h</div><div class="v"><%= runs_24h %></div></div>
+  <div class="card kpi"><div class="l">Fail rate 24h</div><div class="v"><%= fail_rate %></div></div>
+</div>
+
+<div class="grid cols-2" style="margin-top:18px;">
+  <div class="card">
+    <h3>Next fires</h3>
+    <table class="table">
+      <thead><tr><th>When</th><th>Job</th><th>Cron</th></tr></thead>
+      <tbody>
+        <% next_fires.each do |(time, job)| %>
+          <tr>
+            <td class="mono"><%= time.to_s("%F %H:%M") %></td>
+            <td><a href="/jobs/<%= job.id %>"><%= job.name %></a></td>
+            <td class="mono"><%= job.schedule %></td>
+          </tr>
+        <% end %>
+        <% if next_fires.empty? %>
+          <tr><td colspan="3" class="muted">No scheduled fires in horizon.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Recent runs</h3>
+    <table class="table">
+      <thead><tr><th>When</th><th>Job</th><th>Status</th></tr></thead>
+      <tbody>
+        <% recent_runs.each do |(run, job_name)| %>
+          <tr>
+            <td class="mono"><%= run.started_at ? Time.unix(run.started_at.not_nil!).to_s("%F %H:%M") : "-" %></td>
+            <td><a href="/jobs/<%= run.job_id %>"><%= job_name %></a></td>
+            <td><span class="badge <%= status_class(run.status) %>"><%= run.status %></span></td>
+          </tr>
+        <% end %>
+        <% if recent_runs.empty? %>
+          <tr><td colspan="3" class="muted">No runs yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

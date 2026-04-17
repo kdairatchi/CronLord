@@ -58,4 +58,20 @@ describe CronLord::Cron do
   it "handles dom-only schedules" do
     next_at("0 0 31 * *", "2026-04-01 00:00:00").should eq "2026-05-31 00:00:00"
   end
+
+  it "describes common patterns for humans" do
+    CronLord::Cron.parse("@daily").describe.should eq "@daily"
+    CronLord::Cron.parse("*/15 * * * *").describe.should eq "every 15 minutes"
+    CronLord::Cron.parse("0 9 * * *").describe.should eq "every day at 09:00"
+    CronLord::Cron.parse("0 0 * * *").describe.should eq "@daily"
+    CronLord::Cron.parse("0 * * * *").describe.should eq "@hourly"
+  end
+
+  it "next_n returns N upcoming fires" do
+    fires = CronLord::Cron.parse("0 * * * *").next_n(3, Time.utc(2026, 4, 17, 12, 15))
+    fires.size.should eq 3
+    fires[0].to_s("%F %H:%M").should eq "2026-04-17 13:00"
+    fires[1].to_s("%F %H:%M").should eq "2026-04-17 14:00"
+    fires[2].to_s("%F %H:%M").should eq "2026-04-17 15:00"
+  end
 end

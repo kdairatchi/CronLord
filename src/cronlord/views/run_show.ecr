@@ -1,0 +1,53 @@
+<div class="toolbar">
+  <a href="/runs"><button class="ghost">← All runs</button></a>
+  <div style="flex:1"></div>
+  <span class="badge <%= status_class(run.status) %>"><%= run.status %></span>
+</div>
+
+<div class="grid cols-2" style="margin-bottom:18px;">
+  <div class="card">
+    <h3>Run</h3>
+    <div class="small muted">ID</div>
+    <div class="mono"><%= run.id %></div>
+    <div class="small muted" style="margin-top:8px;">Job</div>
+    <div><a href="/jobs/<%= run.job_id %>"><%= job_name %></a></div>
+    <div class="small muted" style="margin-top:8px;">Trigger</div>
+    <div><span class="badge mute"><%= run.trigger %></span></div>
+  </div>
+  <div class="card">
+    <h3>Timing</h3>
+    <div class="small muted">Started</div>
+    <div class="mono"><%= run.started_at ? Time.unix(run.started_at.not_nil!).to_s("%F %H:%M:%S") : "—" %></div>
+    <div class="small muted" style="margin-top:8px;">Finished</div>
+    <div class="mono"><%= run.finished_at ? Time.unix(run.finished_at.not_nil!).to_s("%F %H:%M:%S") : "running…" %></div>
+    <div class="small muted" style="margin-top:8px;">Duration</div>
+    <div class="mono"><%= duration %></div>
+    <div class="small muted" style="margin-top:8px;">Exit</div>
+    <div class="mono"><%= run.exit_code.to_s %></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row between" style="margin-bottom:10px;">
+    <h3 style="margin:0;">Log</h3>
+    <span class="small muted" id="log-status">streaming…</span>
+  </div>
+  <pre class="log" id="log-pane"><%= initial_log %></pre>
+</div>
+
+<script>
+(function () {
+  const pane = document.getElementById("log-pane");
+  const status = document.getElementById("log-status");
+  const es = new EventSource("/api/runs/<%= run.id %>/log");
+  es.onmessage = (ev) => {
+    pane.textContent += ev.data + "\n";
+    pane.scrollTop = pane.scrollHeight;
+  };
+  es.addEventListener("end", (ev) => {
+    status.textContent = "finished (" + ev.data + ")";
+    es.close();
+  });
+  es.onerror = () => { status.textContent = "disconnected"; es.close(); };
+})();
+</script>

@@ -1,0 +1,169 @@
+<form method="post" action="<%= form_action %>">
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Identity</h3>
+      <div class="field">
+        <label>Name</label>
+        <input name="name" value="<%= job.name %>" placeholder="What does this job do?" required>
+      </div>
+      <div class="field">
+        <label>ID</label>
+        <input name="id" value="<%= job.id %>" <%= is_new ? "" : "disabled" %> placeholder="auto-generated">
+        <div class="help">Stable handle used in URLs and the API.</div>
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea name="description" rows="3"><%= job.description %></textarea>
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <input name="category" value="<%= job.category %>" placeholder="default">
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Schedule</h3>
+      <div class="field">
+        <label>Cron expression</label>
+        <input name="schedule" id="cron-input" value="<%= job.schedule %>"
+               class="mono" placeholder="*/5 * * * *" required
+               autocomplete="off">
+        <div class="help">Five fields: minute hour day-of-month month day-of-week. Macros: @hourly @daily @weekly @monthly @yearly.</div>
+      </div>
+      <div class="row wrap" style="gap:6px; margin-bottom:10px;">
+        <% [
+          {"Every 5 min", "*/5 * * * *"},
+          {"Hourly", "@hourly"},
+          {"Daily 09:00", "0 9 * * *"},
+          {"Weekdays 09:00", "0 9 * * 1-5"},
+          {"Monday 08:00", "0 8 * * 1"},
+          {"1st of month", "0 0 1 * *"},
+        ].each do |(label, expr)| %>
+          <button type="button" class="ghost" data-cron="<%= expr %>"><%= label %></button>
+        <% end %>
+      </div>
+      <div class="cron-preview" id="cron-preview">
+        <div id="cron-describe"><%= schedule_description %></div>
+        <div class="next" id="cron-next">Next: <%= schedule_next %></div>
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label>Timezone</label>
+        <input name="timezone" value="<%= job.timezone %>" placeholder="UTC">
+      </div>
+    </div>
+  </div>
+
+  <div class="grid cols-2" style="margin-top:18px;">
+    <div class="card">
+      <h3>Command</h3>
+      <div class="field">
+        <label>Kind</label>
+        <select name="kind">
+          <% %w(shell http claude).each do |k| %>
+            <option value="<%= k %>" <%= job.kind == k ? "selected" : "" %>><%= k %></option>
+          <% end %>
+        </select>
+      </div>
+      <div class="field">
+        <label>Command</label>
+        <textarea name="command" rows="6" class="mono" required><%= job.command %></textarea>
+        <div class="help">Shell jobs execute via <code>/bin/sh -c</code>. Be mindful — this is full shell power.</div>
+      </div>
+      <div class="field">
+        <label>Working directory</label>
+        <input name="working_dir" value="<%= job.working_dir %>" placeholder="/srv/myapp">
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Execution</h3>
+      <div class="field">
+        <label>Timeout (seconds)</label>
+        <input name="timeout_sec" type="number" min="0" value="<%= job.timeout_sec %>">
+        <div class="help">0 = no timeout. Higher = risk of stuck runs.</div>
+      </div>
+      <div class="field">
+        <label>Max concurrent</label>
+        <input name="max_concurrent" type="number" min="1" value="<%= job.max_concurrent %>">
+      </div>
+      <div class="field">
+        <label>Retry count</label>
+        <input name="retry_count" type="number" min="0" value="<%= job.retry_count %>">
+      </div>
+      <div class="field">
+        <label>Enabled</label>
+        <select name="enabled">
+          <option value="1" <%= job.enabled ? "selected" : "" %>>yes</option>
+          <option value="0" <%= job.enabled ? "" : "selected" %>>paused</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:22px; justify-content: space-between;">
+    <div>
+      <% unless is_new %>
+        <form method="post" action="/jobs/<%= job.id %>/delete" style="display:inline;"
+              onsubmit="return confirm('Delete this job? Runs history will be kept.');">
+          <button type="submit" class="danger">Delete job</button>
+        </form>
+      <% end %>
+    </div>
+    <div class="row">
+      <a href="/jobs"><button type="button" class="ghost">Cancel</button></a>
+      <button type="submit" class="primary"><%= is_new ? "Create job" : "Save" %></button>
+    </div>
+  </div>
+</form>
+
+<% unless is_new %>
+<div class="card" style="margin-top:22px;">
+  <div class="row between"><h3 style="margin:0;">Recent runs</h3>
+    <form method="post" action="/jobs/<%= job.id %>/run"><button>Run now</button></form>
+  </div>
+  <table class="table" style="margin-top:10px;">
+    <thead><tr><th>When</th><th>Status</th><th>Exit</th><th>Trigger</th><th></th></tr></thead>
+    <tbody>
+      <% recent_runs.each do |run| %>
+        <tr>
+          <td class="mono"><%= run.started_at ? Time.unix(run.started_at.not_nil!).to_s("%F %H:%M:%S") : "-" %></td>
+          <td><span class="badge <%= status_class(run.status) %>"><%= run.status %></span></td>
+          <td class="mono"><%= run.exit_code.to_s %></td>
+          <td><span class="badge mute"><%= run.trigger %></span></td>
+          <td style="text-align:right;">
+            <a href="/runs/<%= run.id %>"><button class="ghost">Log</button></a>
+          </td>
+        </tr>
+      <% end %>
+      <% if recent_runs.empty? %>
+        <tr><td colspan="5" class="muted">No runs yet.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<% end %>
+
+<script>
+(function () {
+  const input = document.getElementById("cron-input");
+  const describeEl = document.getElementById("cron-describe");
+  const nextEl = document.getElementById("cron-next");
+  const explain = async () => {
+    try {
+      const r = await fetch("/api/cron/explain?expr=" + encodeURIComponent(input.value));
+      const d = await r.json();
+      describeEl.textContent = d.describe || d.error || input.value;
+      nextEl.textContent = "Next: " + (d.next || "—");
+    } catch (e) { /* ignore */ }
+  };
+  let t;
+  input.addEventListener("input", () => { clearTimeout(t); t = setTimeout(explain, 150); });
+  document.querySelectorAll("button[data-cron]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      input.value = btn.getAttribute("data-cron");
+      input.focus();
+      explain();
+    });
+  });
+})();
+</script>

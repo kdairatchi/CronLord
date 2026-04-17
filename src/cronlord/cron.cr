@@ -60,6 +60,54 @@ module CronLord
         dow_restricted: parts[4] != "*")
     end
 
+    # Return the next `count` UTC Times strictly greater than `from` that match.
+    def next_n(count : Int32, from : Time = Time.utc) : Array(Time)
+      out = [] of Time
+      cursor = from
+      count.times do
+        n = next_after(cursor)
+        break unless n
+        out << n
+        cursor = n
+      end
+      out
+    end
+
+    # Human-readable summary of the expression for UI preview.
+    def describe : String
+      expr = @expr.strip
+      if macro_key = MACROS.key_for?(expr) || MACROS.key_for?(MACROS[expr.downcase]? || "")
+        return macro_key
+      end
+      parts = expr.split(/\s+/)
+      return expr unless parts.size == 5
+      min, hr, dm, mo, dw = parts
+
+      return describe_every(min, "minute") if hr == "*" && dm == "*" && mo == "*" && dw == "*" && step_of(min)
+      if dm == "*" && mo == "*" && dw == "*"
+        if min == "0" && hr == "*"
+          return "every hour"
+        elsif min == "0" && hr == "0"
+          return "every day at midnight"
+        elsif min =~ /^\d+$/ && hr =~ /^\d+$/
+          return "every day at #{hr.rjust(2, '0')}:#{min.rjust(2, '0')}"
+        elsif hr =~ /^\d+$/ && step_of(min)
+          return "every #{step_of(min)} min of hour #{hr}"
+        end
+      end
+      expr
+    end
+
+    private def step_of(field : String) : Int32?
+      return nil unless field.starts_with?("*/")
+      field.sub("*/", "").to_i?
+    end
+
+    private def describe_every(field : String, unit : String) : String
+      step = step_of(field)
+      step ? "every #{step} #{unit}s" : "every #{unit}"
+    end
+
     # Return the next UTC Time strictly greater than `from` that matches this expression,
     # or nil if no match within `limit_years` (guardrail).
     def next_after(from : Time, limit_years : Int32 = 5) : Time?
