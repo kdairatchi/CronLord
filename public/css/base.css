@@ -56,7 +56,22 @@ button.primary {
 }
 button.primary:hover { filter: brightness(0.95); background: var(--accent); }
 button.danger  { color: var(--fail); border-color: var(--fail); }
-button.ghost   { border-color: transparent; }
+button.ghost   {
+  border-color: var(--border);
+  background: var(--bg-sunken);
+  color: var(--fg-mute);
+}
+button.ghost:hover { background: var(--bg-elev); color: var(--fg); }
+button.chip {
+  border-color: transparent;
+  background: var(--bg-sunken);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fz-xs);
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+button.chip:hover { background: var(--n-10); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 input, select, textarea {
@@ -132,7 +147,14 @@ hr { border: 0; border-top: 1px solid var(--border-c); margin: 20px 0; }
 }
 .topbar .title { font-family: var(--font-display); font-size: var(--fz-lg); flex: 1; }
 .topbar .actions { display: flex; gap: 8px; align-items: center; }
-.theme-toggle { font-size: var(--fz-xs); color: var(--fg-muted); }
+.theme-toggle {
+  font-size: var(--fz-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+}
+.theme-toggle svg { opacity: .8; }
 
 .content {
   overflow: auto;

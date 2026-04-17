@@ -39,7 +39,7 @@
           {"Monday 08:00", "0 8 * * 1"},
           {"1st of month", "0 0 1 * *"},
         ].each do |(label, expr)| %>
-          <button type="button" class="ghost" data-cron="<%= expr %>"><%= label %></button>
+          <button type="button" class="chip" data-cron="<%= expr %>"><%= label %></button>
         <% end %>
       </div>
       <div class="cron-preview" id="cron-preview">
