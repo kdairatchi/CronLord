@@ -171,18 +171,23 @@
 <script>
 (function () {
   const input = document.getElementById("cron-input");
+  const tzInput = document.querySelector("input[name=timezone]");
   const describeEl = document.getElementById("cron-describe");
   const nextEl = document.getElementById("cron-next");
   const explain = async () => {
     try {
-      const r = await fetch("/api/cron/explain?expr=" + encodeURIComponent(input.value));
+      const tz = (tzInput && tzInput.value) || "UTC";
+      const qs = "expr=" + encodeURIComponent(input.value) + "&tz=" + encodeURIComponent(tz);
+      const r = await fetch("/api/cron/explain?" + qs);
       const d = await r.json();
       describeEl.textContent = d.describe || d.error || input.value;
       nextEl.textContent = "Next: " + (d.next || "—");
     } catch (e) { /* ignore */ }
   };
   let t;
-  input.addEventListener("input", () => { clearTimeout(t); t = setTimeout(explain, 150); });
+  const schedule = () => { clearTimeout(t); t = setTimeout(explain, 150); };
+  input.addEventListener("input", schedule);
+  if (tzInput) { tzInput.addEventListener("input", schedule); }
   document.querySelectorAll("button[data-cron]").forEach((btn) => {
     btn.addEventListener("click", () => {
       input.value = btn.getAttribute("data-cron");

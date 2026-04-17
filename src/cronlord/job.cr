@@ -39,6 +39,13 @@ module CronLord
       Cron.parse(@schedule)
     end
 
+    # Resolve the job's configured timezone. Raises ArgumentError if unknown.
+    def location : Time::Location
+      Time::Location.load(@timezone)
+    rescue Time::Location::InvalidLocationNameError
+      raise ArgumentError.new("unknown timezone: #{@timezone}")
+    end
+
     # --- persistence ---------------------------------------------------------
 
     COLUMNS = "id,name,description,category,kind,schedule,timezone,command," \
@@ -85,6 +92,7 @@ module CronLord
       SQL
 
     def upsert(db = DB.conn) : Nil
+      location # raises ArgumentError if @timezone is invalid
       @updated_at = Time.utc.to_unix
       db.exec(UPSERT_SQL,
         args: [@id, @name, @description, @category, @kind, @schedule, @timezone,

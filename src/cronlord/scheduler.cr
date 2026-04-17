@@ -46,12 +46,14 @@ module CronLord
 
         jobs.each do |job|
           cron = Cron.parse(job.schedule)
-          fire = cron.next_after(now)
+          fire = cron.next_after(now, job.location)
           next unless fire
           plan << {job, fire}
           next_fire = fire if next_fire.nil? || fire < next_fire
         rescue ex : Cron::ParseError
           STDERR.puts "[scheduler] invalid cron for job #{job.id}: #{ex.message}"
+        rescue ex : ArgumentError
+          STDERR.puts "[scheduler] invalid timezone for job #{job.id}: #{ex.message}"
         end
 
         if next_fire.nil?

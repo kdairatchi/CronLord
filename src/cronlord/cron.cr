@@ -60,12 +60,14 @@ module CronLord
         dow_restricted: parts[4] != "*")
     end
 
-    # Return the next `count` UTC Times strictly greater than `from` that match.
-    def next_n(count : Int32, from : Time = Time.utc) : Array(Time)
+    # Return the next `count` UTC Times strictly greater than `from` that match,
+    # evaluated against the wall clock in `location` (default UTC).
+    def next_n(count : Int32, from : Time = Time.utc,
+               location : Time::Location = Time::Location::UTC) : Array(Time)
       out = [] of Time
       cursor = from
       count.times do
-        n = next_after(cursor)
+        n = next_after(cursor, location)
         break unless n
         out << n
         cursor = n
@@ -108,46 +110,63 @@ module CronLord
       step ? "every #{step} #{unit}s" : "every #{unit}"
     end
 
-    # Return the next UTC Time strictly greater than `from` that matches this expression,
-    # or nil if no match within `limit_years` (guardrail).
-    def next_after(from : Time, limit_years : Int32 = 5) : Time?
-      # Round up to the next whole minute; cron ignores seconds.
-      t = (from + 1.minute).at_beginning_of_minute
+    # Return the next UTC Time strictly greater than `from` whose *wall clock in
+    # `location`* matches this expression, or nil if no match within `limit_years`.
+    #
+    # Timezone semantics match POSIX cron:
+    #   - Spring-forward: the skipped local hour simply does not fire.
+    #   - Fall-back:      the repeated local hour fires exactly once
+    #                     (the first occurrence).
+    #
+    # Walks cursor_utc minute by minute. Sparse schedules with a mismatched
+    # local month jump directly to the next allowed month; everything else
+    # walks — cheap enough because every next_after call resolves within a
+    # handful of days.
+    def next_after(from : Time, location : Time::Location = Time::Location::UTC,
+                   limit_years : Int32 = 5) : Time?
+      cursor = (from + 1.minute).at_beginning_of_minute
       deadline = from + limit_years.years
 
-      while t < deadline
-        if @month.includes?(t.month)
-          if day_matches?(t)
-            if @hour.includes?(t.hour)
-              if @minute.includes?(t.minute)
-                return t
-              end
-              t += 1.minute
-              next
-            end
-            t = Time.utc(t.year, t.month, t.day, t.hour, 0).shift(hours: 1)
-            next
-          end
-          t = Time.utc(t.year, t.month, t.day, 0, 0).shift(days: 1)
+      while cursor < deadline
+        local = cursor.in(location)
+
+        unless @month.includes?(local.month)
+          cursor = jump_to_next_allowed_month(local, deadline, location)
           next
         end
 
-        # Month not allowed — jump to day 1 of next allowed month.
-        year = t.year
-        mo = t.month
-        loop do
-          mo += 1
-          if mo > 12
-            mo = 1
-            year += 1
-            break if year > deadline.year
+        if day_matches?(local) && @hour.includes?(local.hour) && @minute.includes?(local.minute)
+          # DST fall-back: the same wall clock occurs twice — fire once.
+          prev_local = (cursor - 1.hour).in(location)
+          if prev_local.year == local.year && prev_local.month == local.month &&
+             prev_local.day == local.day && prev_local.hour == local.hour &&
+             prev_local.minute == local.minute
+            cursor += 1.minute
+            next
           end
-          break if @month.includes?(mo)
+          return cursor
         end
-        t = Time.utc(year, mo, 1, 0, 0)
+
+        cursor += 1.minute
       end
 
       nil
+    end
+
+    private def jump_to_next_allowed_month(local : Time, deadline : Time,
+                                           location : Time::Location) : Time
+      year = local.year
+      mo = local.month
+      loop do
+        mo += 1
+        if mo > 12
+          mo = 1
+          year += 1
+          break if year > deadline.year
+        end
+        break if @month.includes?(mo)
+      end
+      Time.local(year, mo, 1, 0, 0, location: location).to_utc
     end
 
     private def day_matches?(t : Time) : Bool

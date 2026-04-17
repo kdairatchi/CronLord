@@ -222,18 +222,26 @@ module CronLord
       get "/api/cron/explain" do |env|
         env.response.content_type = "application/json"
         expr = env.params.query["expr"]? || ""
+        tz_name = env.params.query["tz"]?.presence || "UTC"
         begin
+          location = Time::Location.load(tz_name)
           cron = Cron.parse(expr)
-          fires = cron.next_n(3)
+          fires = cron.next_n(3, Time.utc, location)
+          abbr = tz_name == "UTC" ? "UTC" : tz_name
+          formatter = ->(t : Time) { "#{t.in(location).to_s("%Y-%m-%d %H:%M")} #{abbr}" }
           {
             "ok"       => true,
             "describe" => cron.describe,
-            "next"     => fires.first?.try(&.to_s("%Y-%m-%d %H:%M UTC")) || "—",
-            "fires"    => fires.map(&.to_s("%Y-%m-%d %H:%M UTC")),
+            "tz"       => tz_name,
+            "next"     => fires.first?.try { |t| formatter.call(t) } || "—",
+            "fires"    => fires.map { |t| formatter.call(t) },
           }.to_json
         rescue ex : Cron::ParseError
           env.response.status_code = 400
           {"ok" => false, "error" => ex.message}.to_json
+        rescue Time::Location::InvalidLocationNameError
+          env.response.status_code = 400
+          {"ok" => false, "error" => "unknown timezone: #{tz_name}"}.to_json
         end
       end
     end
@@ -265,9 +273,10 @@ module CronLord
         now = Time.utc
         jobs.select(&.enabled).each do |j|
           begin
-            t = Cron.parse(j.schedule).next_after(now)
+            t = Cron.parse(j.schedule).next_after(now, j.location)
             next_fires << {t, j} if t
           rescue Cron::ParseError
+          rescue ArgumentError
           end
         end
         next_fires = next_fires.sort_by(&.[0]).first(8)
@@ -293,8 +302,10 @@ module CronLord
         raw = Job.all.sort_by { |j| {j.enabled ? 0 : 1, j.name.downcase} }
         jobs = raw.map do |j|
           nxt = begin
-            Cron.parse(j.schedule).next_after(now)
+            Cron.parse(j.schedule).next_after(now, j.location)
           rescue Cron::ParseError
+            nil
+          rescue ArgumentError
             nil
           end
           {j, nxt}
@@ -312,7 +323,7 @@ module CronLord
         job = Job.new(Job.new_id, "", "shell", "*/5 * * * *", "echo hello")
         form_action = "/jobs"
         schedule_description = Cron.parse(job.schedule).describe
-        schedule_next = Cron.parse(job.schedule).next_after(Time.utc).try(&.to_s("%F %H:%M UTC")) || "—"
+        schedule_next = format_next_local(job)
         recent_runs = [] of Run
         status_class = ->(s : String) { ViewHelpers.status_class(s) }
         webhook_url = job.args["webhook_url"]?.try(&.as_s?) || ""
@@ -332,7 +343,7 @@ module CronLord
         is_new = false
         form_action = "/jobs/#{job.id}"
         schedule_description = (Cron.parse(job.schedule).describe rescue job.schedule)
-        schedule_next = (Cron.parse(job.schedule).next_after(Time.utc).try(&.to_s("%F %H:%M UTC")) rescue nil) || "—"
+        schedule_next = format_next_local(job)
         recent_runs = Run.recent(job_id: job.id, limit: 15)
         status_class = ->(s : String) { ViewHelpers.status_class(s) }
         webhook_url = job.args["webhook_url"]?.try(&.as_s?) || ""
@@ -620,6 +631,16 @@ module CronLord
 
     private def split_labels(raw : String) : Array(String)
       raw.split(',').map(&.strip).reject(&.empty?)
+    end
+
+    private def format_next_local(job : Job) : String
+      loc = job.location
+      t = Cron.parse(job.schedule).next_after(Time.utc, loc)
+      return "—" unless t
+      abbr = job.timezone == "UTC" ? "UTC" : job.timezone
+      "#{t.in(loc).to_s("%F %H:%M")} #{abbr}"
+    rescue
+      "—"
     end
 
     private def worker_base_url(env) : String
