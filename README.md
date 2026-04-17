@@ -22,17 +22,19 @@ shards build --release
 
 Open <http://localhost:7070>.
 
-## Features (v0.2.0)
+## Features (v0.3.0)
 
 - Tickless scheduler with cron + macro expressions (`@hourly`,
-  `@daily`, etc.).
+  `@daily`, etc.) and per-job IANA timezones (DST-correct).
 - Three job kinds: `shell`, `http`, `claude` (prompt → `claude -p`).
 - Remote workers over HMAC-signed HTTP; reference worker ships in
   the same binary (`cronlord worker run`).
+- Generic webhook + Slack (`https://hooks.slack.com/…`) notification
+  channels on every finish.
 - Per-run log capture with SSE tailing in the browser.
 - REST API + Prometheus `/metrics` + audit trail at `/audit`.
 - Hardened systemd unit and Alpine Docker image in `contrib/` and
-  `Dockerfile`.
+  `Dockerfile`; GitHub Actions CI + release workflows under `.github/`.
 
 ## Documentation
 

@@ -11,12 +11,12 @@ standard HTTP status codes with an `{"error": "..."}` body.
 
 ### `GET /healthz`
 
-Unauthenticated. Returns `{"status":"ok","version":"0.2.0"}`. Use for
+Unauthenticated. Returns `{"status":"ok","version":"0.3.0"}`. Use for
 liveness probes.
 
 ### `GET /api/version`
 
-Unauthenticated. Returns `{"version":"0.2.0"}`.
+Unauthenticated. Returns `{"version":"0.3.0"}`.
 
 ## Jobs
 
@@ -67,7 +67,13 @@ curl -XPOST -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" 
 
 Required fields: `schedule`, `command`. Optional fields match the
 columns in `jobs` — see [Job Kinds](job-kinds.md) for kind-specific
-options.
+options. A few notable optional fields:
+
+- `timezone` — IANA zone name the cron fires against (default `UTC`).
+  Rejected with `400` if the OS can't resolve it.
+- `webhook_url` — JSON payload delivered on every finish.
+- `slack_webhook_url` — Slack Block Kit payload delivered on every
+  finish. Must start with `https://hooks.slack.com/`.
 
 Returns `201` with the stored job. Writes `job.create` or `job.update`
 to the audit log.
@@ -99,25 +105,29 @@ curl -N -H "Authorization: Bearer $TOK" \
 
 ## Cron helpers
 
-### `GET /api/cron/explain?expr=`
+### `GET /api/cron/explain?expr=&tz=`
 
-Unauthenticated (it's read-only, no data exposure). Returns:
+Unauthenticated (read-only, no data exposure). `tz` is an optional IANA
+name (defaults to `UTC`); when set, `next` and `fires` are rendered in
+that zone.
 
 ```json
 {
   "ok": true,
-  "describe": "at minute */5",
-  "next": "2026-04-17 14:30 UTC",
+  "describe": "every day at 09:00",
+  "tz": "America/New_York",
+  "next": "2026-04-18 09:00 America/New_York",
   "fires": [
-    "2026-04-17 14:30 UTC",
-    "2026-04-17 14:35 UTC",
-    "2026-04-17 14:40 UTC"
+    "2026-04-18 09:00 America/New_York",
+    "2026-04-19 09:00 America/New_York",
+    "2026-04-20 09:00 America/New_York"
   ]
 }
 ```
 
-Returns `400` with `{"ok":false,"error":"..."}` on parse failure. The
-web UI's live preview calls this endpoint.
+Returns `400` with `{"ok":false,"error":"..."}` on a parse failure or an
+unknown timezone. The web UI's live preview calls this endpoint and
+re-queries whenever the timezone field changes.
 
 ## Worker protocol (HMAC)
 

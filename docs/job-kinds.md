@@ -145,3 +145,43 @@ timeout_sec = 600
 Retries and webhook notifications work identically across all three
 kinds. The job editor shows kind-specific help next to the command
 field so you don't have to remember the JSON schema.
+
+## Notifications
+
+Every job can carry two optional webhook fields, delivered in parallel
+by a best-effort fiber when a run reaches a terminal status (`success`,
+`fail`, `timeout`, or `cancelled`).
+
+| Field | Shape | Purpose |
+| --- | --- | --- |
+| `webhook_url` | `POST` JSON with `job_id`, `run_id`, `status`, `exit_code`, `started_at`, `finished_at`, `error`, `trigger` | Generic automation (PagerDuty, custom dashboards, Zapier, …). |
+| `slack_webhook_url` | `POST` Slack Block Kit (`text` + `blocks`) | Slack channel posts. |
+
+The Slack field must begin with `https://hooks.slack.com/` — anything
+else is refused so that a misconfigured or attacker-controlled URL can't
+receive the Slack-shaped payload. Status appears as a text tag
+(`[ok]`, `[fail]`, `[timeout]`, `[cancelled]`), never an emoji, so the
+message reads the same regardless of the recipient's client.
+
+Both channels retry up to three times with a two-second gap and log to
+stderr when they give up; failures never block the scheduler.
+
+## Timezones
+
+Each job has a `timezone` column (default `UTC`). The scheduler resolves
+it through Crystal's `Time::Location`, so any IANA zone your host
+supports works — `America/New_York`, `Europe/Berlin`, `Asia/Tokyo`, etc.
+The value is validated at save time; an unknown zone is rejected with
+`400`.
+
+DST is handled the POSIX-cron way:
+
+- On spring-forward, the missing wall-clock hour (`02:00`–`02:59` in the
+  US) simply doesn't fire that day.
+- On fall-back, the repeated wall-clock hour fires exactly once — the
+  first occurrence. A subsequent `next_after` call picks up from the
+  next day.
+
+The live cron preview in the job editor re-queries `/api/cron/explain`
+whenever the timezone field changes, so you see the fires in the zone
+the job will actually use before you save.

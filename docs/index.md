@@ -29,6 +29,13 @@ Other schedulers either hide behind a Node stack you have to babysit
   counters in standard text format.
 - **Audit trail.** Every create, update, delete, and manual run lands in
   the audit table and is visible at `/audit`.
+- **Timezone-aware schedules.** Each job carries an IANA timezone; cron
+  expressions match the wall clock in that zone, with POSIX-correct
+  DST behavior (spring-forward gaps are skipped, fall-back repeats fire
+  exactly once).
+- **Slack notifications.** Point a job at a `https://hooks.slack.com/`
+  URL and every finish posts a Block Kit message with status, duration,
+  exit code, and the error (when the run failed).
 
 ## Get running in 60 seconds
 
@@ -59,10 +66,10 @@ Open `http://localhost:7070`.
 
 ## Status
 
-v0.2.0 — scheduler core, three job kinds, web UI, REST API, webhook
-notifier, audit trail, HMAC worker auth + reference worker,
-`/workers` UI, Prometheus metrics, zombie + log + lease reapers.
-Ships a single static binary for linux-amd64 and linux-arm64.
+v0.3.0 — v0.2 plus per-job IANA timezones with DST-correct firing,
+Slack webhook channel alongside the generic webhook, and GitHub Actions
+workflows for CI (spec + build) and release (static linux-amd64 /
+linux-arm64 tarballs via Docker Buildx + QEMU).
 
 ## License
 
