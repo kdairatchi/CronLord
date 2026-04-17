@@ -1,0 +1,27 @@
+services:
+  cronlord:
+    build: .
+    image: cronlord:latest
+    container_name: cronlord
+    restart: unless-stopped
+    ports:
+      - "7070:7070"
+    environment:
+      CRONLORD_HOST: "0.0.0.0"
+      CRONLORD_PORT: "7070"
+      CRONLORD_DATA: "/var/lib/cronlord"
+      ## Set to a long random string to require a bearer token on the API.
+      ## Example: openssl rand -hex 32
+      # CRONLORD_ADMIN_TOKEN: "change-me"
+    volumes:
+      - cronlord-data:/var/lib/cronlord
+      ## Optional — mount a declarative job file:
+      # - ./cronlord.toml:/app/cronlord.toml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:7070/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  cronlord-data:

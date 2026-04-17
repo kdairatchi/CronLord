@@ -1,0 +1,14 @@
+.git
+.gitignore
+bin/
+lib/
+var/
+tmp/
+*.db
+*.db-*
+.DS_Store
+README.md
+LICENSE
+docs/
+*.log
+node_modules/

@@ -1,0 +1,61 @@
+[Unit]
+Description=CronLord — visual self-hosted cron scheduler
+Documentation=https://github.com/kdairatchi/CronLord
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cronlord
+Group=cronlord
+WorkingDirectory=/var/lib/cronlord
+ExecStart=/usr/local/bin/cronlord server --config /etc/cronlord/cronlord.toml
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+## Environment — override the TOML config without editing it.
+Environment=CRONLORD_HOST=127.0.0.1
+Environment=CRONLORD_PORT=7070
+Environment=CRONLORD_DATA=/var/lib/cronlord
+# Environment=CRONLORD_ADMIN_TOKEN=change-me
+
+## --- Hardening ------------------------------------------------------------
+## Every knob below can be loosened if a job legitimately needs it, but the
+## defaults assume the scheduler itself should do nothing more than read its
+## config, write to its data dir, and talk to the network.
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+LockPersonality=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallArchitectures=native
+UMask=0077
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+ReadWritePaths=/var/lib/cronlord
+ReadOnlyPaths=/etc/cronlord
+
+## Resource limits — trim if you schedule many concurrent jobs.
+LimitNOFILE=65536
+TasksMax=4096
+
+[Install]
+WantedBy=multi-user.target

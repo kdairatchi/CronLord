@@ -1,0 +1,39 @@
+## CronLord configuration. Every key has a safe default; this file is
+## optional. Environment variables override keys here (CRONLORD_HOST,
+## CRONLORD_PORT, CRONLORD_DATA, CRONLORD_DB, CRONLORD_LOG_DIR,
+## CRONLORD_ADMIN_TOKEN).
+
+[server]
+host = "127.0.0.1"
+port = 7070
+
+## Uncomment to require Authorization: Bearer <token> on /api/*.
+## Generate one with: openssl rand -hex 32
+# admin_token = "replace-me-with-a-long-random-string"
+
+[storage]
+## Single directory that holds the SQLite DB and per-run logs.
+data_dir = "/var/lib/cronlord"
+# db_path  = "/var/lib/cronlord/cronlord.db"
+# log_dir  = "/var/lib/cronlord/logs"
+
+## Declarative job entries. Jobs defined here are re-upserted at boot and
+## tagged with source = "toml" — the UI lets you see them but deletes are
+## reversible (they come back next boot). Use the UI or API for ephemeral
+## jobs.
+
+# [[jobs]]
+# id       = "heartbeat"
+# name     = "Heartbeat"
+# schedule = "*/1 * * * *"
+# command  = "date -u"
+# kind     = "shell"
+# enabled  = true
+
+# [[jobs]]
+# id       = "daily-backup"
+# name     = "Nightly DB dump"
+# schedule = "0 3 * * *"
+# command  = "/usr/local/bin/backup.sh"
+# kind     = "shell"
+# timeout_sec = 1800
