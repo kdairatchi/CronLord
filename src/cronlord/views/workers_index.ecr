@@ -1,0 +1,63 @@
+<div class="toolbar">
+  <span class="muted small"><%= workers.size %> registered</span>
+  <div style="flex:1"></div>
+  <a href="/workers/new"><button class="primary">+ Register worker</button></a>
+</div>
+
+<% if workers.empty? %>
+  <div class="card" style="padding:36px; text-align:center;">
+    <h3 style="margin-top:0;">No workers yet</h3>
+    <p class="muted">Register a worker to run jobs whose executor is
+    <code>worker</code>. The scheduler hands those jobs out via the
+    lease protocol — see the <a href="/settings">Settings</a> page for
+    the base URL.</p>
+    <a href="/workers/new"><button class="primary">Register your first worker</button></a>
+  </div>
+<% else %>
+  <div class="card" style="padding:0;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>State</th>
+        <th>Labels</th>
+        <th style="width:160px;">Last seen</th>
+        <th style="width:180px;">Registered</th>
+        <th style="width:240px;text-align:right;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% workers.each do |worker| %>
+        <% state = ViewHelpers.worker_state(worker) %>
+        <tr>
+          <td>
+            <div><strong><%= worker.name %></strong></div>
+            <div class="mono small muted"><%= worker.id %></div>
+          </td>
+          <td><span class="badge <%= ViewHelpers.worker_state_class(state) %>"><%= state %></span></td>
+          <td>
+            <% if worker.labels.empty? %>
+              <span class="muted small">—</span>
+            <% else %>
+              <% worker.labels.each do |label| %>
+                <span class="badge mute"><%= label %></span>
+              <% end %>
+            <% end %>
+          </td>
+          <td class="mono small"><%= ViewHelpers.relative_time(worker.last_seen) %></td>
+          <td class="mono small"><%= Time.unix(worker.created_at).to_s("%F %H:%M") %></td>
+          <td style="text-align:right;">
+            <form method="post" action="/workers/<%= worker.id %>/<%= worker.enabled ? "disable" : "enable" %>" style="display:inline;">
+              <button class="ghost"><%= worker.enabled ? "Disable" : "Enable" %></button>
+            </form>
+            <form method="post" action="/workers/<%= worker.id %>/delete" style="display:inline;"
+                  onsubmit="return confirm('Delete worker <%= worker.name %>? Its secret will stop working.');">
+              <button class="danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  </div>
+<% end %>

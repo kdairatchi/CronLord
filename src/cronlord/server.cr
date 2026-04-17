@@ -441,6 +441,76 @@ module CronLord
         theme = "light"
         render "src/cronlord/views/settings.ecr", "src/cronlord/views/layout.ecr"
       end
+
+      # ---- Workers UI ----------------------------------------------------
+
+      get "/workers" do |env|
+        page_title = "Workers"
+        nav_active = "workers"
+        show_new_job = false
+        theme = "light"
+        workers = Worker.all
+        render "src/cronlord/views/workers_index.ecr", "src/cronlord/views/layout.ecr"
+      end
+
+      get "/workers/new" do |env|
+        page_title = "Register worker"
+        nav_active = "workers"
+        show_new_job = false
+        theme = "light"
+        render "src/cronlord/views/worker_new.ecr", "src/cronlord/views/layout.ecr"
+      end
+
+      post "/workers" do |env|
+        name = env.params.body["name"]?.to_s.strip
+        if name.empty?
+          env.response.status_code = 400
+          env.response.print "name is required"
+          next
+        end
+        labels = split_labels(env.params.body["labels"]?.to_s)
+        worker, plaintext_secret = Worker.register(name, labels)
+        Audit.write("worker.create", actor: "ui", target: "worker:#{worker.id}",
+          meta: {"name" => JSON::Any.new(name)})
+
+        hmac_key = Worker.hash_secret(plaintext_secret)
+        base_url = worker_base_url(env)
+        page_title = "Worker registered"
+        nav_active = "workers"
+        show_new_job = false
+        theme = "light"
+        render "src/cronlord/views/worker_created.ecr", "src/cronlord/views/layout.ecr"
+      end
+
+      post "/workers/:id/enable" do |env|
+        worker = Worker.find(env.params.url["id"])
+        if worker
+          worker.enabled = true
+          worker.upsert
+          Audit.write("worker.update", actor: "ui", target: "worker:#{worker.id}",
+            meta: {"enabled" => JSON::Any.new(true)})
+        end
+        env.redirect "/workers"
+      end
+
+      post "/workers/:id/disable" do |env|
+        worker = Worker.find(env.params.url["id"])
+        if worker
+          worker.enabled = false
+          worker.upsert
+          Audit.write("worker.update", actor: "ui", target: "worker:#{worker.id}",
+            meta: {"enabled" => JSON::Any.new(false)})
+        end
+        env.redirect "/workers"
+      end
+
+      post "/workers/:id/delete" do |env|
+        id = env.params.url["id"]
+        if Worker.delete(id)
+          Audit.write("worker.delete", actor: "ui", target: "worker:#{id}", meta: {} of String => JSON::Any)
+        end
+        env.redirect "/workers"
+      end
     end
 
     # ------------------------------------------------------------ helpers ---
@@ -546,6 +616,16 @@ module CronLord
       end
       job.working_dir = form["working_dir"]?.presence
       job
+    end
+
+    private def split_labels(raw : String) : Array(String)
+      raw.split(',').map(&.strip).reject(&.empty?)
+    end
+
+    private def worker_base_url(env) : String
+      scheme = env.request.headers["X-Forwarded-Proto"]? || "http"
+      host = env.request.headers["Host"]? || "localhost:7070"
+      "#{scheme}://#{host}"
     end
 
     private def find_run(id : String) : Run?

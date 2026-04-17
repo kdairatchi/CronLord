@@ -45,6 +45,35 @@ module CronLord
       end
     end
 
+    def relative_time(unix : Int64?) : String
+      return "never" if unix.nil?
+      delta = Time.utc.to_unix - unix
+      return "in the future" if delta < 0
+      return "just now" if delta < 5
+      return "#{delta}s ago" if delta < 60
+      return "#{delta // 60}m ago" if delta < 3600
+      return "#{delta // 3600}h ago" if delta < 86_400
+      "#{delta // 86_400}d ago"
+    end
+
+    def worker_state(worker : Worker) : String
+      return "disabled" unless worker.enabled
+      return "idle" if worker.last_seen.nil?
+      delta = Time.utc.to_unix - worker.last_seen.not_nil!
+      return "online" if delta < 120
+      return "stale" if delta < 3600
+      "idle"
+    end
+
+    def worker_state_class(state : String) : String
+      case state
+      when "online"   then "ok"
+      when "stale"    then "warn"
+      when "disabled" then "fail"
+      else                 "mute"
+      end
+    end
+
     def meta_summary(entry : Audit) : String
       return "" if entry.meta.empty?
       entry.meta.map { |k, v|

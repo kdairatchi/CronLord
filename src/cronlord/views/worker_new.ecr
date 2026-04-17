@@ -1,0 +1,36 @@
+<div class="grid cols-2">
+  <div class="card">
+    <h3>Register worker</h3>
+    <form method="post" action="/workers">
+      <div class="field">
+        <label>Name</label>
+        <input name="name" placeholder="runner-linux-1" required autofocus>
+        <div class="help">Human-readable label. Not used for auth.</div>
+      </div>
+      <div class="field">
+        <label>Labels</label>
+        <input name="labels" placeholder="linux, gpu">
+        <div class="help">Comma-separated. A job whose <code>labels</code>
+          is non-empty will only lease to workers with at least one
+          matching label.</div>
+      </div>
+      <div class="row" style="margin-top:14px; justify-content: flex-end;">
+        <a href="/workers"><button type="button" class="ghost">Cancel</button></a>
+        <button type="submit" class="primary">Register</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>What happens</h3>
+    <p class="muted">A random 64-hex-char secret is generated. Only its
+    SHA-256 hash is stored server-side — the plaintext is shown once on
+    the next page so you can paste it into your worker's config.</p>
+    <p class="muted">The HMAC key the worker signs with is
+    <code>sha256(plaintext_secret)</code>. Your worker hashes the
+    plaintext locally once; the scheduler never sees the plaintext
+    after this page.</p>
+    <p class="muted">Lose the plaintext and you'll have to re-register.
+    There is no recovery on purpose.</p>
+  </div>
+</div>

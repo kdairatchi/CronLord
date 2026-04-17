@@ -1,0 +1,32 @@
+<div class="card" style="border-left:4px solid var(--accent);">
+  <h3 style="margin-top:0;">Worker registered</h3>
+  <p class="muted">Copy the plaintext secret now. It will never be
+  shown again. The derived HMAC key is what the worker actually signs
+  with — keep it out of plaintext-transit logs.</p>
+
+  <div class="field">
+    <label>Worker ID</label>
+    <input class="mono" value="<%= worker.id %>" readonly onclick="this.select()">
+  </div>
+
+  <div class="field">
+    <label>Plaintext secret (shown once)</label>
+    <input class="mono" value="<%= plaintext_secret %>" readonly onclick="this.select()">
+  </div>
+
+  <div class="field">
+    <label>HMAC key (sha256 of secret)</label>
+    <input class="mono" value="<%= hmac_key %>" readonly onclick="this.select()">
+    <div class="help">This is what the worker stores and signs with.</div>
+  </div>
+
+  <h4 style="margin-top:22px;">Minimal worker config</h4>
+  <pre class="mono" style="background:var(--bg-mute); padding:14px; border-radius:8px; overflow:auto;"><code>CRONLORD_URL=<%= base_url %>
+CRONLORD_WORKER_ID=<%= worker.id %>
+CRONLORD_HMAC_KEY=<%= hmac_key %>
+CRONLORD_LABELS=<%= worker.labels.join(",") %></code></pre>
+
+  <div class="row" style="margin-top:22px; justify-content: flex-end;">
+    <a href="/workers"><button class="primary">Done</button></a>
+  </div>
+</div>
