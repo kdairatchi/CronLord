@@ -14,7 +14,7 @@ manager / worker split.
 | Runtime | Single Crystal binary | Node.js + modules |
 | Storage | SQLite (one file) | Local FS or S3-style remote |
 | Install | `./cronlord server` | `npm install` + setup.js + config.json |
-| Multi-host | v0.1: single-node; HMAC protocol ready | Yes (master + workers) |
+| Multi-host | Yes (single scheduler + N workers over HMAC) | Yes (master + workers) |
 | UI | Server-rendered ECR + htmx | SPA |
 | Design tone | Editorial/minimalist | Utilitarian/dashboard |
 | License | MIT | MIT |

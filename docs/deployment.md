@@ -127,6 +127,89 @@ sqlite3 /var/lib/cronlord/cronlord.db ".backup /backup/cronlord-$(date -I).db"
 Or rsync the whole directory with the service stopped (WAL is safe to
 copy while running, but stopping is cleaner for a full snapshot).
 
+## Running a worker
+
+Workers are the same binary run in polling mode on a different host.
+They hold no state and carry no DB — one process per host is plenty
+for most loads, several per host if you want to run jobs in parallel.
+
+### 1. Register the worker on the scheduler
+
+From the scheduler host:
+
+```sh
+cronlord worker register runner-linux-1 --label linux
+# prints:
+#   id:     b1d7...
+#   secret: 47caaaeb...   (shown once)
+```
+
+Or do it from the web UI at `/workers/new` — it also prints the
+derived HMAC key and a ready-to-paste env block.
+
+### 2. Derive the HMAC key
+
+The worker signs with `sha256(plaintext_secret)`, not the plaintext.
+Hash it once on the worker host:
+
+```sh
+export CRONLORD_HMAC_KEY=$(printf '%s' "$PLAIN_SECRET" | openssl dgst -sha256 | awk '{print $2}')
+```
+
+The plaintext never leaves this host.
+
+### 3. Start the worker
+
+```sh
+export CRONLORD_URL=https://cron.example.com
+export CRONLORD_WORKER_ID=b1d7...
+export CRONLORD_HMAC_KEY=...     # from step 2
+cronlord worker run --name runner-linux-1
+```
+
+The worker polls every 5 seconds when idle, claims one run at a
+time, heartbeats every `lease / 2` seconds while executing, and
+POSTs the result when done.
+
+### Supported job kinds on workers
+
+- `shell` — full support, output capped at 512 KiB and returned
+  with the finish call.
+- `http` — full support; uses the same URL+JSON syntax as the
+  server-side runner.
+- `claude` — intentionally not supported on workers. Keep
+  `executor=local` for jobs that shell out to `claude -p` because
+  they need that host's toolchain and credentials.
+
+### systemd unit for a worker
+
+Adapt `contrib/cronlord.service` — the safe minimum:
+
+```ini
+[Service]
+Environment=CRONLORD_URL=https://cron.example.com
+Environment=CRONLORD_WORKER_ID=b1d7...
+EnvironmentFile=/etc/cronlord-worker.env   # holds CRONLORD_HMAC_KEY
+ExecStart=/usr/local/bin/cronlord worker run
+User=cronlord
+Restart=on-failure
+```
+
+`CRONLORD_HMAC_KEY` belongs in a `0600` env file, never in a
+committed unit file.
+
+### Scaling
+
+Jobs are handed out in FIFO order — the oldest queued run matching
+a worker's labels is leased first. If two workers both advertise
+`linux`, they race for leases; whichever polls first wins. This is
+safe because `try_lease!` is a conditional UPDATE under SQLite's
+serializable-writes guarantee.
+
+If a worker crashes mid-run, the lease reaper re-queues the run
+after `lease_expires_at` passes (scheduler side; default 30 s
+tick). Another worker picks it up on the next poll.
+
 ## High availability
 
 v0.1 is single-node. Two schedulers against one SQLite file will corrupt
@@ -163,9 +246,10 @@ Run logs are not auto-rotated in v0.1. Add a daily `find logs/ -mtime
 - **`/healthz` returns 200 but jobs never fire:** check the scheduler
   logs. Almost always a bad cron expression on a recently-added job;
   fix the expression or delete the job.
-- **Runs stuck in `running`:** process crashed before `mark_finished`.
-  Not yet auto-reaped — manually mark them via
-  `UPDATE runs SET status='fail' WHERE status='running' AND started_at < strftime('%s','now','-2 hours')`.
+- **Runs stuck in `running`:** a local run crashed before
+  `mark_finished`, or a worker died mid-run. Local stuck runs are
+  auto-reaped at scheduler boot; worker runs are re-queued once their
+  `lease_expires_at` passes (lease reaper runs every 30 s).
 - **SSE log tail blank:** reverse proxy buffering (see nginx snippet).
 - **Database locked:** WAL mode with `busy_timeout=5000` should avoid
   this. If you see it, make sure only one scheduler instance is running.
