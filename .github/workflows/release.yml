@@ -1,0 +1,78 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build ${{ matrix.arch }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: linux-amd64
+            platform: linux/amd64
+          - arch: linux-arm64
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: matrix.arch == 'linux-arm64'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build static binary
+        run: |
+          docker buildx build \
+            --platform ${{ matrix.platform }} \
+            --file Dockerfile.release \
+            --target export \
+            --output type=local,dest=./dist \
+            .
+
+      - name: Package tarball (binary at tarball root — matches scripts/install.sh)
+        run: |
+          mkdir -p release
+          chmod +x dist/cronlord
+          tar -czf release/cronlord-${{ matrix.arch }}.tar.gz -C dist cronlord
+          (cd release && sha256sum cronlord-${{ matrix.arch }}.tar.gz > cronlord-${{ matrix.arch }}.tar.gz.sha256)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cronlord-${{ matrix.arch }}
+          path: release/*
+
+  publish:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Collect
+        run: |
+          mkdir -p release
+          find dist -type f -name 'cronlord-linux-*.tar.gz*' -exec cp {} release/ \;
+          ls -la release
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
