@@ -327,6 +327,7 @@ module CronLord
         recent_runs = [] of Run
         status_class = ->(s : String) { ViewHelpers.status_class(s) }
         webhook_url = job.args["webhook_url"]?.try(&.as_s?) || ""
+        slack_webhook_url = job.args["slack_webhook_url"]?.try(&.as_s?) || ""
         render "src/cronlord/views/job_edit.ecr", "src/cronlord/views/layout.ecr"
       end
 
@@ -347,6 +348,7 @@ module CronLord
         recent_runs = Run.recent(job_id: job.id, limit: 15)
         status_class = ->(s : String) { ViewHelpers.status_class(s) }
         webhook_url = job.args["webhook_url"]?.try(&.as_s?) || ""
+        slack_webhook_url = job.args["slack_webhook_url"]?.try(&.as_s?) || ""
         render "src/cronlord/views/job_edit.ecr", "src/cronlord/views/layout.ecr"
       end
 
@@ -593,6 +595,12 @@ module CronLord
       job.retry_count = h["retry_count"]?.try(&.as_i?) || 0
       job.retry_delay_sec = h["retry_delay_sec"]?.try(&.as_i?) || 30
       job.working_dir = h["working_dir"]?.try(&.as_s?)
+      if webhook = h["webhook_url"]?.try(&.as_s?)
+        job.args["webhook_url"] = JSON::Any.new(webhook) unless webhook.empty?
+      end
+      if slack = h["slack_webhook_url"]?.try(&.as_s?)
+        job.args["slack_webhook_url"] = JSON::Any.new(slack) unless slack.empty?
+      end
       job
     end
 
@@ -624,6 +632,12 @@ module CronLord
         job.args["webhook_url"] = JSON::Any.new(webhook)
       else
         job.args.delete("webhook_url")
+      end
+      slack = form["slack_webhook_url"]?.try(&.strip)
+      if slack && !slack.empty?
+        job.args["slack_webhook_url"] = JSON::Any.new(slack)
+      else
+        job.args.delete("slack_webhook_url")
       end
       job.working_dir = form["working_dir"]?.presence
       job
