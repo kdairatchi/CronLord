@@ -69,6 +69,20 @@ Each job has `max_concurrent`. The scheduler checks the number of
 skipped (not queued) and logged at the scheduler level. v0.2 will add
 proper queueing.
 
+### Executor split
+
+Each job has an `executor` field:
+
+- `local` — the scheduler spawns the runner in-process (default).
+- `worker` — the scheduler creates the run row as `queued` and leaves
+  it there. Remote workers poll `/api/workers/lease` to claim and
+  execute it. See [API: Worker protocol](api.md#worker-protocol-hmac).
+
+Workers heartbeat every `lease_sec / 2` seconds. If a worker crashes
+or partitions, the `Reaper` fiber re-queues runs whose
+`lease_expires_at` has passed (runs every 30 s). This keeps jobs
+progressing even when a worker silently dies.
+
 ## Runners
 
 Each runner exposes a single module-level `run(job, run, buffer) : Int32`
@@ -115,9 +129,11 @@ don't split them, and splits on top-level semicolons.
 
 ### Schema at a glance
 
-- `jobs` — scheduling config (18 columns incl. args/env JSON blobs).
+- `jobs` — scheduling config (21 columns incl. `executor`, `labels_json`,
+  args/env JSON blobs).
 - `runs` — one row per execution; `status`, `exit_code`, `log_path`,
-  `trigger`, `error`, `attempt`.
+  `trigger`, `error`, `attempt`, plus `worker_id`, `lease_expires_at`,
+  `heartbeat_at` for remote runs.
 - `audit` — append-only; `at`, `actor`, `action`, `target`, `meta_json`.
 - `workers` — registered remote workers (`id`, `name`, `secret_hash`,
   `labels_json`, `last_seen`).
@@ -162,6 +178,9 @@ and never raise back into the scheduler.
 - **UI:** not authenticated in-process. Reverse-proxy it.
 - **Workers:** HMAC-SHA256 with a 60-second skew window. Secrets are
   stored as SHA-256 hashes; the plaintext is returned once at register.
+  The HMAC key is `sha256(plaintext)` — the worker hashes the plaintext
+  locally once to derive the same key the server holds, so the server
+  never sees the plaintext after registration.
 - **Job inputs:** a `shell` command can do anything the scheduler's
   user can do. Don't expose the UI to untrusted users. Put it behind
   Tailscale / your SSO / Cloudflare Access.
@@ -194,9 +213,9 @@ Cons (honest):
 
 ## What's deliberately missing in v0.1
 
-- Remote workers (protocol ships; lease/finish endpoints don't).
-- Distributed deployments.
+- Distributed scheduler (one leader, horizontal workers are supported
+  via the lease protocol, but there's still only one scheduler
+  process).
 - Per-user accounts.
 - Time-zone support beyond UTC.
-- Prometheus metrics. Add them via the webhook notifier and your own
-  sidecar for now.
+- Built-in TLS. Reverse-proxy it.

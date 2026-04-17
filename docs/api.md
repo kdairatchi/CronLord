@@ -121,66 +121,146 @@ web UI's live preview calls this endpoint.
 
 ## Worker protocol (HMAC)
 
-Remote workers authenticate with a shared secret issued when they
-register. Every signed request carries:
+Jobs with `executor = "worker"` are queued but never spawned on the
+scheduler host. Remote workers poll a lease endpoint, heartbeat while
+they execute, and post a terminal status when done.
 
-- `X-CronLord-Timestamp: <unix_seconds>`
-- `X-CronLord-Signature: <hex-sha256>`
+### Registering a worker
 
-### Canonical string
-
-```
-"<timestamp>\n<request body>"
-```
-
-### Signing (Crystal)
-
-```crystal
-sig, ts = CronLord::Auth::Hmac.sign(secret, body)
-headers["X-CronLord-Timestamp"] = ts.to_s
-headers["X-CronLord-Signature"] = sig
-```
-
-### Signing (sh)
+Not exposed over HTTP — register on the scheduler host:
 
 ```sh
-ts=$(date +%s)
-body='{"worker":"runner-1"}'
-sig=$(printf '%s\n%s' "$ts" "$body" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
-curl -H "X-CronLord-Timestamp: $ts" \
-     -H "X-CronLord-Signature: $sig" \
-     -H "Content-Type: application/json" \
-     --data "$body" \
-     http://cronlord:7070/api/workers/lease
+cronlord worker register runner-1 --label linux --label gpu
+# prints: worker id + plaintext secret (copy once)
 ```
 
-### Skew window
-
-The server rejects requests where `|now - timestamp| > 60 seconds`. Sync
-the worker's clock (NTP) or raise the window by overriding the skew
-argument in your own verifier.
-
-### Verification on the server side
-
-```crystal
-CronLord::Auth::Hmac.verify!(secret, body, timestamp, signature)
-# raises VerifyError on mismatch or skew
-```
-
-`verify?` returns `true` / `false` without raising.
-
-### Worker registration
-
-Not exposed over HTTP in v0.1 — use the CLI or a Crystal one-liner:
+Or from Crystal:
 
 ```crystal
 worker, plaintext_secret = CronLord::Worker.register("runner-1", labels: ["linux", "gpu"])
-puts "id: #{worker.id}"
-puts "secret (copy once): #{plaintext_secret}"
 ```
 
-The plaintext secret is only returned once. Only its SHA-256 hash is
-stored in the `workers` table.
+Only `sha256(plaintext_secret)` is stored in the `workers` table.
+
+### Deriving the HMAC key
+
+The server never sees the plaintext secret after registration — it
+only holds the SHA-256 hash. To produce the same HMAC key on the
+worker, hash the plaintext locally once and use the hex digest as
+the key material:
+
+```sh
+KEY=$(printf '%s' "$PLAIN_SECRET" | openssl dgst -sha256 | awk '{print $2}')
+```
+
+Store `$KEY` (not the plaintext) in the worker's config.
+
+### Signed request headers
+
+Every request to `/api/workers/*` carries:
+
+- `X-CronLord-Worker-Id: <worker_id>`
+- `X-CronLord-Timestamp: <unix_seconds>`
+- `X-CronLord-Signature: <hex-sha256>`
+
+Canonical string (newline-separated):
+
+```
+<timestamp>\n<raw request body>
+```
+
+Signing in shell:
+
+```sh
+ts=$(date +%s)
+body='{"lease_sec":60}'
+sig=$(printf '%s\n%s' "$ts" "$body" | openssl dgst -sha256 -hmac "$KEY" | awk '{print $2}')
+curl -XPOST http://cronlord:7070/api/workers/lease \
+  -H "X-CronLord-Worker-Id: $WORKER_ID" \
+  -H "X-CronLord-Timestamp: $ts" \
+  -H "X-CronLord-Signature: $sig" \
+  -H "Content-Type: application/json" \
+  --data "$body"
+```
+
+Signing in Crystal:
+
+```crystal
+sig, ts = CronLord::Auth::Hmac.sign(hmac_key, body)
+```
+
+The server rejects requests where `|now - timestamp| > 60 seconds` or
+when the worker is disabled.
+
+### `POST /api/workers/lease`
+
+Claim the oldest queued run whose job targets this worker. Body:
+
+```json
+{"lease_sec": 60}
+```
+
+Responses:
+
+- `200` with run + job payload when a run is leased
+- `204` when nothing matches (poll again later)
+
+```json
+{
+  "run_id": "374f2b6c-9d90-4d90-978a-33abbb118d45",
+  "job": {
+    "id": "reindex",
+    "kind": "shell",
+    "command": "/usr/bin/reindex",
+    "executor": "worker",
+    "labels": ["linux"],
+    "timeout_sec": 600,
+    "...": "..."
+  },
+  "lease_expires_at": 1776458465,
+  "heartbeat_every": 30
+}
+```
+
+Label matching: if the job's `labels` array is empty, any worker is
+eligible; otherwise the worker must advertise at least one matching
+label.
+
+### `POST /api/workers/heartbeat`
+
+Extend the lease. Call at least once per `heartbeat_every` seconds
+(half the `lease_sec` the lease was granted for).
+
+```json
+{"run_id": "374f2b6c-...", "lease_sec": 60}
+```
+
+Returns `{"lease_expires_at": <unix>}` or `404` if the run is not
+leased by this worker (possibly reaped — abort execution).
+
+### `POST /api/workers/finish`
+
+Report a terminal status and optionally upload the log.
+
+```json
+{
+  "run_id": "374f2b6c-...",
+  "status": "success",
+  "exit_code": 0,
+  "error": null,
+  "log": "... captured stdout+stderr ..."
+}
+```
+
+`status` should be `"success"`, `"fail"`, or `"timeout"`. Returns
+`{"ok": true}`; also writes a `run.finish` audit row and triggers any
+configured webhook.
+
+### Lease expiry
+
+The scheduler runs a lease reaper every 30 seconds. Runs whose
+`lease_expires_at` has passed are flipped back to `queued` with
+`worker_id` cleared, so another worker can pick them up.
 
 ## Audit
 
