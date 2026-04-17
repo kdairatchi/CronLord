@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "sprint-**"]
+  pull_request:
+
+jobs:
+  test:
+    name: spec + build
+    runs-on: ubuntu-24.04
+    container:
+      image: crystallang/crystal:1.19.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libsqlite3 headers
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libsqlite3-dev
+
+      - name: Cache shards
+        uses: actions/cache@v4
+        with:
+          path: |
+            lib
+            ~/.cache/crystal
+          key: shards-${{ runner.os }}-${{ hashFiles('shard.lock', 'shard.yml') }}
+          restore-keys: |
+            shards-${{ runner.os }}-
+
+      - name: shards install
+        run: shards install
+
+      - name: crystal spec
+        run: crystal spec --order=random --error-on-warnings
+
+      - name: crystal build (debug)
+        run: crystal build src/cronlord/main.cr -o bin/cronlord
+
+      - name: ameba (non-blocking)
+        continue-on-error: true
+        run: ./bin/ameba || true

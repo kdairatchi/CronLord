@@ -1,0 +1,18 @@
+## Export-only Dockerfile used by .github/workflows/release.yml.
+## Builds the static cronlord binary and exposes it as an export stage
+## so docker buildx --output type=local drops the file into ./dist.
+
+FROM crystallang/crystal:1.19-alpine AS build
+
+WORKDIR /src
+
+COPY shard.yml shard.lock ./
+RUN shards install --production
+
+COPY src ./src
+COPY db ./db
+
+RUN shards build cronlord --production --release --static --no-debug
+
+FROM scratch AS export
+COPY --from=build /src/bin/cronlord /cronlord
