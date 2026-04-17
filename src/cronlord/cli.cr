@@ -16,6 +16,7 @@ module CronLord
         worker register <name> [--label L]...
         worker list
         worker rm <id>
+        worker run --url URL --id ID --key KEY [--name N] [--lease 60] [--poll 5]
 
       options:
         -c, --config PATH          path to cronlord.toml (default: ./cronlord.toml)
@@ -60,6 +61,12 @@ module CronLord
         return 1
       end
 
+      # `worker run` is the only subcommand that runs on a remote host
+      # without a scheduler DB — dispatch before opening SQLite.
+      if rest.first == "worker" && rest[1]? == "run"
+        return cmd_worker_run(rest[2..])
+      end
+
       cfg = Config.load(config_path)
       DB.open(cfg.db_path)
       DB.migrate!(log: false)
@@ -76,6 +83,37 @@ module CronLord
         puts USAGE
         1
       end
+    end
+
+    private def self.cmd_worker_run(argv : Array(String)) : Int32
+      url = ENV["CRONLORD_URL"]? || ""
+      id = ENV["CRONLORD_WORKER_ID"]? || ""
+      key = ENV["CRONLORD_HMAC_KEY"]? || ""
+      name = ENV["CRONLORD_WORKER_NAME"]? || System.hostname rescue "worker"
+      lease_sec = (ENV["CRONLORD_LEASE_SEC"]?.try(&.to_i32?)) || 60
+      poll_sec = (ENV["CRONLORD_POLL_SEC"]?.try(&.to_i32?)) || 5
+
+      OptionParser.parse(argv) do |op|
+        op.on("--url=URL", "scheduler base URL") { |v| url = v }
+        op.on("--id=ID", "worker id") { |v| id = v }
+        op.on("--key=KEY", "HMAC key (sha256 of plaintext secret)") { |v| key = v }
+        op.on("--name=NAME", "display name (for logs only)") { |v| name = v }
+        op.on("--lease=SEC", "lease window seconds (default 60)") { |v| lease_sec = v.to_i32 }
+        op.on("--poll=SEC", "idle poll interval (default 5)") { |v| poll_sec = v.to_i32 }
+      end
+
+      if url.empty? || id.empty? || key.empty?
+        STDERR.puts "usage: cronlord worker run --url URL --id ID --key KEY [--name N] [--lease 60] [--poll 5]"
+        STDERR.puts "       env: CRONLORD_URL, CRONLORD_WORKER_ID, CRONLORD_HMAC_KEY"
+        return 2
+      end
+
+      client = WorkerClient.new(url, id, key)
+      loop_ = WorkerLoop.new(client, name, lease_sec, poll_sec)
+      Signal::INT.trap { loop_.stop }
+      Signal::TERM.trap { loop_.stop }
+      loop_.run
+      0
     end
 
     private def self.cmd_serve(cfg : Config) : Int32
