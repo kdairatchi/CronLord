@@ -10,7 +10,7 @@ this on.
 docker run -d --name cronlord \
   -p 7070:7070 \
   -v cronlord-data:/var/lib/cronlord \
-  cronlord:latest
+  ghcr.io/kdairatchi/cronlord:latest
 ```
 
 Or with `docker-compose.yml` in the repo root:
@@ -41,7 +41,7 @@ Confirm it's alive:
 
 ```sh
 curl http://127.0.0.1:7070/healthz
-# {"status":"ok","version":"0.3.2"}
+# {"status":"ok","version":"0.3.3"}
 ```
 
 ## Option 3 — from source

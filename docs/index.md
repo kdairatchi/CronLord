@@ -41,7 +41,8 @@ Other schedulers either hide behind a Node stack you have to babysit
 
 ```sh
 # Docker
-docker run -p 7070:7070 -v cronlord:/var/lib/cronlord cronlord:latest
+docker run -p 7070:7070 -v cronlord:/var/lib/cronlord \
+  ghcr.io/kdairatchi/cronlord:latest
 
 # Or from source
 git clone https://github.com/kdairatchi/CronLord && cd CronLord
@@ -66,6 +67,10 @@ Open `http://localhost:7070`.
 
 ## Status
 
+v0.3.3 — release workflow now publishes a multi-arch image to
+`ghcr.io/kdairatchi/cronlord` (`:latest`, `:<version>`, `:<minor>`).
+The runtime `Dockerfile` gets the same static-libs fix that landed on
+`Dockerfile.release` in v0.3.2. No runtime or API changes.
 v0.3.2 — packaging patch over v0.3.1: `Dockerfile.release` installs the
 `-static`/`-dev` variants of sqlite, openssl, pcre2, zlib, and gc so
 `shards build --static` actually links on Alpine. No runtime changes.

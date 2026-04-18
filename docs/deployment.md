@@ -12,7 +12,7 @@ Fast to stand up, trivial to upgrade.
 # docker-compose.yml
 services:
   cronlord:
-    image: cronlord:latest
+    image: ghcr.io/kdairatchi/cronlord:latest
     restart: unless-stopped
     ports: ["7070:7070"]
     environment:

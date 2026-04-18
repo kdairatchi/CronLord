@@ -3,6 +3,25 @@
 All notable changes to CronLord. Dates are in UTC. This project follows
 semantic versioning.
 
+## [0.3.3] — 2026-04-18
+
+### Added
+- **GHCR publishing.** The release workflow now builds a multi-arch
+  (linux/amd64 + linux/arm64) runtime image via `docker buildx` and
+  pushes it to `ghcr.io/kdairatchi/cronlord` with `:<version>`,
+  `:<minor>`, and `:latest` tags on every `v*` tag.
+
+### Fixed
+- `Dockerfile` (runtime image) now installs the `-static`/`-dev`
+  variants of sqlite, openssl, pcre2, zlib, and gc, matching the fix
+  that landed in `Dockerfile.release` for v0.3.2. Without this a plain
+  `docker build .` failed at link time.
+
+### Changed
+- README, `docs/index.md`, `docs/getting-started.md`, and
+  `docs/deployment.md` now reference `ghcr.io/kdairatchi/cronlord:latest`
+  instead of a never-published `cronlord:latest`.
+
 ## [0.3.2] — 2026-04-18
 
 ### Fixed

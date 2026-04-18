@@ -4,6 +4,17 @@
 
 FROM crystallang/crystal:1.19-alpine AS build
 
+## Static link needs the -static archives for every lib crystal-sqlite3
+## and kemal pull in. The base image only ships the shared builds.
+RUN apk add --no-cache \
+      sqlite-static \
+      sqlite-dev \
+      openssl-dev \
+      openssl-libs-static \
+      pcre2-dev \
+      zlib-static \
+      gc-dev
+
 WORKDIR /src
 
 ## Copy shard manifests first so the dependency fetch caches across code edits.
