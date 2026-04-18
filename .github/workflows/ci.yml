@@ -36,7 +36,9 @@ jobs:
         run: crystal spec --order=random --error-on-warnings
 
       - name: crystal build (debug)
-        run: crystal build src/cronlord/main.cr -o bin/cronlord
+        run: |
+          mkdir -p bin
+          crystal build src/cronlord/main.cr -o bin/cronlord
 
       - name: ameba (non-blocking)
         continue-on-error: true
