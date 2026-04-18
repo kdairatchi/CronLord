@@ -2,7 +2,7 @@
 ## Stage 1 builds on Alpine with Crystal; stage 2 ships only the binary and
 ## runtime assets (views + public CSS) on a minimal base.
 
-FROM crystallang/crystal:1.19-alpine AS build
+FROM crystallang/crystal:1.20-alpine AS build
 
 ## Static link needs the -static archives for every lib crystal-sqlite3
 ## and kemal pull in. The base image only ships the shared builds.

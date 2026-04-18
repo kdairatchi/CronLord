@@ -2,7 +2,7 @@
 ## Builds the static cronlord binary and exposes it as an export stage
 ## so docker buildx --output type=local drops the file into ./dist.
 
-FROM crystallang/crystal:1.19-alpine AS build
+FROM crystallang/crystal:1.20-alpine AS build
 
 # Static link needs the -static archives for every lib crystal-sqlite3
 # and kemal end up dragging in. The base image ships the shared builds
