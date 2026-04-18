@@ -31,7 +31,7 @@ RUN shards build cronlord --production --release --static --no-debug
 
 ## ---- runtime ---------------------------------------------------------------
 
-FROM alpine:3.20 AS runtime
+FROM alpine:3.23 AS runtime
 
 RUN addgroup -S cronlord && adduser -S -G cronlord -H -s /sbin/nologin cronlord \
  && apk add --no-cache tini ca-certificates tzdata
