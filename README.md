@@ -26,29 +26,31 @@ shards build --release
 
 Open <http://localhost:7070>.
 
-## Features (v0.3.0)
+## What you get
 
-- Tickless scheduler with cron + macro expressions (`@hourly`,
-  `@daily`, etc.) and per-job IANA timezones (DST-correct).
-- Three job kinds: `shell`, `http`, `claude` (prompt → `claude -p`).
-- Remote workers over HMAC-signed HTTP; reference worker ships in
-  the same binary (`cronlord worker run`).
-- Generic webhook + Slack (`https://hooks.slack.com/…`) notification
-  channels on every finish.
-- Per-run log capture with SSE tailing in the browser.
-- REST API + Prometheus `/metrics` + audit trail at `/audit`.
-- Hardened systemd unit and Alpine Docker image in `contrib/` and
-  `Dockerfile`; GitHub Actions CI + release workflows under `.github/`.
+- Tickless cron scheduler with macro expressions (`@hourly`, `@daily`)
+  and per-job IANA timezones (DST-correct).
+- Three job kinds: `shell`, `http`, `claude` (prompt -> `claude -p`).
+- Remote workers over HMAC-signed HTTP; reference worker in the same
+  binary (`cronlord worker run`).
+- Cancel queued or running jobs from the UI or `POST /api/runs/:id/cancel`.
+- Webhook + Slack notification channels.
+- Per-run log capture with SSE tailing.
+- REST API, Prometheus `/metrics`, audit trail at `/audit`.
+- GHCR image signed with cosign, attached SPDX SBOM and SLSA provenance,
+  Trivy-scanned for HIGH/CRITICAL CVEs before signing.
+- Release tarballs carry `.sha256` sidecars; `install.sh` verifies before
+  installing.
 
 ## Documentation
 
 Full docs under [`docs/`](docs/index.md):
-[getting started](docs/getting-started.md) ·
-[job kinds](docs/job-kinds.md) ·
-[API](docs/api.md) ·
-[deployment](docs/deployment.md) ·
-[architecture](docs/architecture.md) ·
-[comparison](docs/comparison.md) ·
+[getting started](docs/getting-started.md) |
+[job kinds](docs/job-kinds.md) |
+[API](docs/api.md) |
+[deployment](docs/deployment.md) |
+[architecture](docs/architecture.md) |
+[comparison](docs/comparison.md) |
 [contributing](docs/contributing.md).
 
 ## License

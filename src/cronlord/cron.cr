@@ -1,11 +1,11 @@
 module CronLord
   # Minimal 5-field cron expression evaluator.
   #
-  #   ┌──── minute (0-59)
-  #   │ ┌── hour   (0-23)
-  #   │ │ ┌ dom    (1-31)
-  #   │ │ │ ┌ month (1-12 or JAN-DEC)
-  #   │ │ │ │ ┌ dow  (0-6, 0=SUN, or SUN-SAT)
+  #   .---- minute (0-59)
+  #   | .-- hour   (0-23)
+  #   | | .- dom    (1-31)
+  #   | | | .- month (1-12 or JAN-DEC)
+  #   | | | | .- dow  (0-6, 0=SUN, or SUN-SAT)
   #   * * * * *   command
   #
   # Supported syntax: *, N, N-M, N-M/S, */S, lists (A,B), and macros
@@ -120,7 +120,7 @@ module CronLord
     #
     # Walks cursor_utc minute by minute. Sparse schedules with a mismatched
     # local month jump directly to the next allowed month; everything else
-    # walks — cheap enough because every next_after call resolves within a
+    # walks. Cheap enough because every next_after call resolves within a
     # handful of days.
     def next_after(from : Time, location : Time::Location = Time::Location::UTC,
                    limit_years : Int32 = 5) : Time?
@@ -136,7 +136,7 @@ module CronLord
         end
 
         if day_matches?(local) && @hour.includes?(local.hour) && @minute.includes?(local.minute)
-          # DST fall-back: the same wall clock occurs twice — fire once.
+          # DST fall-back: the same wall clock occurs twice. Fire once.
           prev_local = (cursor - 1.hour).in(location)
           if prev_local.year == local.year && prev_local.month == local.month &&
              prev_local.day == local.day && prev_local.hour == local.hour &&

@@ -12,7 +12,7 @@ module CronLord
     #
     # The worker's shared secret was issued once at registration and is
     # stored on the server only as a SHA-256 hash of the plaintext. To verify
-    # HMAC we need the plaintext secret — so the worker-auth path stores
+    # HMAC we need the plaintext secret - so the worker-auth path stores
     # the plaintext in-process cache after first use. Since we only keep the
     # hash on disk, workers MUST send the plaintext once during a bootstrap
     # step (POST /api/workers/:id/verify) before any signed call.

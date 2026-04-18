@@ -58,7 +58,7 @@ module CronLord
         log "finished run=#{run_id} status=#{result.status} exit=#{result.exit_code.inspect}"
       rescue ex : WorkerClient::Error
         # Finish can race with a reaper on a lost lease; log but don't crash
-        # the whole worker loop — next lease takes over.
+        # the whole worker loop - next lease takes over.
         log "finish failed: #{ex.message}"
       end
     end

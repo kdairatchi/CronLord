@@ -2,7 +2,7 @@
 
 All endpoints under `/api/*` speak JSON. When `admin_token` is configured,
 every request must present either an `Authorization: Bearer <token>`
-header or a `?token=<token>` query string — the header is preferred.
+header or a `?token=<token>` query string - the header is preferred.
 
 Responses set `Content-Type: application/json`. Error responses use
 standard HTTP status codes with an `{"error": "..."}` body.
@@ -66,13 +66,13 @@ curl -XPOST -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" 
 ```
 
 Required fields: `schedule`, `command`. Optional fields match the
-columns in `jobs` — see [Job Kinds](job-kinds.md) for kind-specific
+columns in `jobs` - see [Job Kinds](job-kinds.md) for kind-specific
 options. A few notable optional fields:
 
-- `timezone` — IANA zone name the cron fires against (default `UTC`).
+- `timezone` - IANA zone name the cron fires against (default `UTC`).
   Rejected with `400` if the OS can't resolve it.
-- `webhook_url` — JSON payload delivered on every finish.
-- `slack_webhook_url` — Slack Block Kit payload delivered on every
+- `webhook_url` - JSON payload delivered on every finish.
+- `slack_webhook_url` - Slack Block Kit payload delivered on every
   finish. Must start with `https://hooks.slack.com/`.
 
 Returns `201` with the stored job. Writes `job.create` or `job.update`
@@ -110,10 +110,10 @@ Cancel a queued or running run. The behavior depends on current state:
 | From state | Response | Body `phase` | Effect |
 | --- | --- | --- | --- |
 | `queued` | `200` | `"queued"` | Flipped to `cancelled`; never dispatched. |
-| `running` (scheduler-executed) | `202` | `"local_signalled"` | `SIGTERM` → `SIGKILL` after 2s; row ends `cancelled`. |
+| `running` (scheduler-executed) | `202` | `"local_signalled"` | `SIGTERM` -> `SIGKILL` after 2s; row ends `cancelled`. |
 | `running` (worker-leased) | `202` | `"awaiting_worker"` | Row flipped to `cancelling`; worker's next heartbeat returns `410` and it aborts the subprocess. |
 | `cancelling` | `202` | `"already_pending"` | No-op; prior request still in flight. |
-| Any terminal status | `409` | — | Returns `{"error":"terminal","status":"success"}` etc. |
+| Any terminal status | `409` | - | Returns `{"error":"terminal","status":"success"}` etc. |
 
 Every cancel writes a `run.cancel` row to the audit log with
 `meta.from = <prior state>` and (for running runs) `meta.local =
@@ -159,7 +159,7 @@ they execute, and post a terminal status when done.
 
 ### Registering a worker
 
-Not exposed over HTTP — register on the scheduler host:
+Not exposed over HTTP - register on the scheduler host:
 
 ```sh
 cronlord worker register runner-1 --label linux --label gpu
@@ -176,7 +176,7 @@ Only `sha256(plaintext_secret)` is stored in the `workers` table.
 
 ### Deriving the HMAC key
 
-The server never sees the plaintext secret after registration — it
+The server never sees the plaintext secret after registration - it
 only holds the SHA-256 hash. To produce the same HMAC key on the
 worker, hash the plaintext locally once and use the hex digest as
 the key material:
@@ -269,7 +269,7 @@ Extend the lease. Call at least once per `heartbeat_every` seconds
 
 Returns `{"lease_expires_at": <unix>}` or:
 
-- `404` if the run is not leased by this worker (possibly reaped —
+- `404` if the run is not leased by this worker (possibly reaped -
   abort execution).
 - `410 Gone` with `{"cancelled": true}` when an operator cancelled the
   run. The worker must abort the subprocess and may POST to
@@ -310,7 +310,7 @@ around it.
 Audit rows are written for:
 
 - `job.create`, `job.update`, `job.delete`
-- `job.run` (manual trigger from UI or API — scheduler-fired runs are
+- `job.run` (manual trigger from UI or API - scheduler-fired runs are
   visible in the runs list, not the audit log)
 
 Each row has `at`, `actor`, `action`, `target`, and free-form `meta_json`.
@@ -330,5 +330,5 @@ Each row has `at`, `actor`, `action`, `target`, and free-form `meta_json`.
 
 v0.1 has no built-in rate limiter. If you expose the API to the
 internet, put it behind nginx / Caddy / Cloudflare and rate-limit
-there. The scheduler itself is unaffected by API load — heavy polling
+there. The scheduler itself is unaffected by API load - heavy polling
 just adds SQLite read traffic.

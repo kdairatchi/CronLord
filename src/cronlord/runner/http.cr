@@ -81,7 +81,7 @@ module CronLord
 
           status = response.status_code
           body = response.body? || ""
-          excerpt = body.bytesize > MAX_BODY_BYTES ? body.byte_slice(0, MAX_BODY_BYTES) + "\n…truncated" : body
+          excerpt = body.bytesize > MAX_BODY_BYTES ? body.byte_slice(0, MAX_BODY_BYTES) + "\n...truncated" : body
           elapsed = (Time.instant - started).total_milliseconds.round.to_i
 
           buffer.write("HTTP #{status} (#{elapsed}ms)", :meta)

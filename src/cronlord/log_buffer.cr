@@ -36,7 +36,7 @@ module CronLord
         when ch.send(formatted)
           # delivered
         else
-          # slow consumer — drop; prevents scheduler stalls
+          # slow consumer - drop; prevents scheduler stalls
         end
       end
     end

@@ -11,12 +11,12 @@ module CronLord
     class Error < Exception
     end
 
-    # Raised by `heartbeat` when the scheduler responds with 410 — the run
+    # Raised by `heartbeat` when the scheduler responds with 410 - the run
     # was cancelled by an operator and the worker should abort execution.
     class CancelledError < Error
     end
 
-    # Server returned no run — lease endpoint's 204 case. Not an error.
+    # Server returned no run - lease endpoint's 204 case. Not an error.
     NO_LEASE = :no_lease
 
     record LeaseResponse, run_id : String, job : JSON::Any, lease_expires_at : Int64?, heartbeat_every : Int32

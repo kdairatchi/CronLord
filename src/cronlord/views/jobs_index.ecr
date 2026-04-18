@@ -24,7 +24,7 @@
           <div class="muted small mono"><%= job.id %></div>
         </td>
         <td class="mono"><%= job.schedule %></td>
-        <td class="mono"><%= next_time ? next_time.to_s("%F %H:%M") : "—" %></td>
+        <td class="mono"><%= next_time ? next_time.to_s("%F %H:%M") : "-" %></td>
         <td><span class="badge <%= job.enabled ? "ok" : "mute" %>"><%= job.enabled ? "enabled" : "paused" %></span></td>
         <td><span class="badge mute"><%= job.source %></span></td>
         <td style="text-align:right;">

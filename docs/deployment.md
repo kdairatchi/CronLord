@@ -55,7 +55,7 @@ Either use `scripts/install.sh` or drop `contrib/cronlord.service`
 manually. The unit is hardened by default:
 
 - `NoNewPrivileges=true`, `ProtectSystem=strict`, `ProtectHome=true`
-- `CapabilityBoundingSet=` (empty — no kernel capabilities)
+- `CapabilityBoundingSet=` (empty - no kernel capabilities)
 - `SystemCallFilter=@system-service` minus `@privileged @resources`
 - `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6`
 - `ReadWritePaths=/var/lib/cronlord` only
@@ -74,7 +74,7 @@ systemctl start cronlord
 ```
 
 Migrations run automatically on boot. If a migration fails the scheduler
-exits before binding port 7070 — check journalctl.
+exits before binding port 7070 - check journalctl.
 
 ## Reverse proxy + TLS
 
@@ -106,7 +106,7 @@ server {
     proxy_pass http://127.0.0.1:7070;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $remote_addr;
-    # SSE streams for run logs — disable buffering:
+    # SSE streams for run logs - disable buffering:
     proxy_buffering off;
     proxy_cache off;
     proxy_read_timeout 1h;
@@ -114,7 +114,7 @@ server {
 }
 ```
 
-The `proxy_buffering off` is important — without it SSE log tailing
+The `proxy_buffering off` is important - without it SSE log tailing
 shows nothing until the connection closes.
 
 ### Cloudflare Tunnel
@@ -130,9 +130,9 @@ need to know; it just serves HTTP to the tunnel.
 
 Everything lives in `data_dir` (default `/var/lib/cronlord`):
 
-- `cronlord.db` — jobs, runs, audit, tokens, workers.
-- `cronlord.db-wal`, `cronlord.db-shm` — WAL + shared memory.
-- `logs/<run_id>.log` — per-run stdout/stderr.
+- `cronlord.db` - jobs, runs, audit, tokens, workers.
+- `cronlord.db-wal`, `cronlord.db-shm` - WAL + shared memory.
+- `logs/<run_id>.log` - per-run stdout/stderr.
 
 A consistent snapshot is as simple as:
 
@@ -146,7 +146,7 @@ copy while running, but stopping is cleaner for a full snapshot).
 ## Running a worker
 
 Workers are the same binary run in polling mode on a different host.
-They hold no state and carry no DB — one process per host is plenty
+They hold no state and carry no DB - one process per host is plenty
 for most loads, several per host if you want to run jobs in parallel.
 
 ### 1. Register the worker on the scheduler
@@ -160,7 +160,7 @@ cronlord worker register runner-linux-1 --label linux
 #   secret: 47caaaeb...   (shown once)
 ```
 
-Or do it from the web UI at `/workers/new` — it also prints the
+Or do it from the web UI at `/workers/new` - it also prints the
 derived HMAC key and a ready-to-paste env block.
 
 ### 2. Derive the HMAC key
@@ -189,17 +189,17 @@ POSTs the result when done.
 
 ### Supported job kinds on workers
 
-- `shell` — full support, output capped at 512 KiB and returned
+- `shell` - full support, output capped at 512 KiB and returned
   with the finish call.
-- `http` — full support; uses the same URL+JSON syntax as the
+- `http` - full support; uses the same URL+JSON syntax as the
   server-side runner.
-- `claude` — intentionally not supported on workers. Keep
+- `claude` - intentionally not supported on workers. Keep
   `executor=local` for jobs that shell out to `claude -p` because
   they need that host's toolchain and credentials.
 
 ### systemd unit for a worker
 
-Adapt `contrib/cronlord.service` — the safe minimum:
+Adapt `contrib/cronlord.service` - the safe minimum:
 
 ```ini
 [Service]
@@ -216,7 +216,7 @@ committed unit file.
 
 ### Scaling
 
-Jobs are handed out in FIFO order — the oldest queued run matching
+Jobs are handed out in FIFO order - the oldest queued run matching
 a worker's labels is leased first. If two workers both advertise
 `linux`, they race for leases; whichever polls first wins. This is
 safe because `try_lease!` is a conditional UPDATE under SQLite's
@@ -229,7 +229,7 @@ tick). Another worker picks it up on the next poll.
 ## High availability
 
 v0.1 is single-node. Two schedulers against one SQLite file will corrupt
-each other — don't do it. If you need HA today, do active/passive with
+each other - don't do it. If you need HA today, do active/passive with
 shared storage (NFS/EBS) and a watchdog that fails over on health check
 miss.
 
@@ -246,13 +246,13 @@ jobs do. Sizing guidance:
   for peak concurrency, not job count. Each concurrent run is a full
   child process with its own pipes.
 
-The scheduler thread is tickless — it only wakes when the next job is
+The scheduler thread is tickless - it only wakes when the next job is
 due. Idle CPU is zero.
 
 ## Logs
 
-- `stderr` from the scheduler → journalctl/docker logs.
-- Per-run job output → `logs/<run_id>.log` in the data dir.
+- `stderr` from the scheduler -> journalctl/docker logs.
+- Per-run job output -> `logs/<run_id>.log` in the data dir.
 
 Run logs are not auto-rotated in v0.1. Add a daily `find logs/ -mtime
 +30 -delete` in another cron job if disk usage matters.

@@ -62,7 +62,7 @@ module CronLord
     end
 
     # Walk the log dir; delete files older than cutoff. Empty directories
-    # stay — they're cheap and jobs may create new logs in them.
+    # stay - they're cheap and jobs may create new logs in them.
     def purge_logs(log_dir : String, cutoff_seconds : Int64) : Int32
       return 0 unless Dir.exists?(log_dir)
       deadline = Time.utc - cutoff_seconds.seconds

@@ -1,7 +1,7 @@
 module CronLord
   module Runner
     # Runs the Claude CLI non-interactively with the job command as the prompt.
-    # This keeps CronLord agnostic to API keys — the CLI handles auth via its
+    # This keeps CronLord agnostic to API keys - the CLI handles auth via its
     # normal env (`ANTHROPIC_API_KEY`) and settings.
     #
     # The job command is fed to `claude -p <prompt>`. stdout + stderr are
@@ -77,7 +77,7 @@ module CronLord
         end
         code
       rescue ex : File::NotFoundError
-        buffer.write("[claude cli not found: '#{ex.message}' — install Claude Code CLI]", :meta) rescue nil
+        buffer.write("[claude cli not found: '#{ex.message}' - install Claude Code CLI]", :meta) rescue nil
         run.mark_finished("fail", 127, ex.message)
         127
       ensure

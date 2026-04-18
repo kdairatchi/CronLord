@@ -7,7 +7,7 @@ module CronLord
     #
     # The canonical string is "timestamp + \"\\n\" + body". Signatures are
     # transmitted hex-encoded (lowercase). Verification uses a constant-time
-    # compare and enforces a ±skew window to mitigate replay.
+    # compare and enforces a +/-skew window to mitigate replay.
     module Hmac
       DEFAULT_SKEW = 60_i64 # seconds
 

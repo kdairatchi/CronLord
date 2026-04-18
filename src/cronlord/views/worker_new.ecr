@@ -24,7 +24,7 @@
   <div class="card">
     <h3>What happens</h3>
     <p class="muted">A random 64-hex-char secret is generated. Only its
-    SHA-256 hash is stored server-side — the plaintext is shown once on
+    SHA-256 hash is stored server-side. The plaintext is shown once on
     the next page so you can paste it into your worker's config.</p>
     <p class="muted">The HMAC key the worker signs with is
     <code>sha256(plaintext_secret)</code>. Your worker hashes the

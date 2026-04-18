@@ -6,7 +6,7 @@ module CronLord
     #
     # Only local (on-host) runs are reachable this way. Worker-leased runs
     # learn about cancellation through a 410 response on their next
-    # heartbeat — that path does not touch this registry.
+    # heartbeat - that path does not touch this registry.
     module CancelRegistry
       extend self
 
@@ -38,7 +38,7 @@ module CronLord
         true
       end
 
-      # Test helper — current size of the registry.
+      # Test helper - current size of the registry.
       def size : Int32
         @@mutex.synchronize { @@entries.size }
       end

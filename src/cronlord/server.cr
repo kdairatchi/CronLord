@@ -3,8 +3,8 @@ require "json"
 require "ecr"
 
 module CronLord
-  # HTTP + WebSocket + server-rendered UI. The UI is intentionally simple —
-  # server-rendered ECR + htmx — so that CronLord boots anywhere a single
+  # HTTP + WebSocket + server-rendered UI. The UI is intentionally simple -
+  # server-rendered ECR + htmx - so that CronLord boots anywhere a single
   # binary can run, without a JS build step.
   class Server
     include ViewHelpers
@@ -236,7 +236,7 @@ module CronLord
         {"ok" => true}.to_json
       end
 
-      # Cron explain — powers the live preview in the job editor.
+      # Cron explain - powers the live preview in the job editor.
       get "/api/cron/explain" do |env|
         env.response.content_type = "application/json"
         expr = env.params.query["expr"]? || ""
@@ -251,7 +251,7 @@ module CronLord
             "ok"       => true,
             "describe" => cron.describe,
             "tz"       => tz_name,
-            "next"     => fires.first?.try { |t| formatter.call(t) } || "—",
+            "next"     => fires.first?.try { |t| formatter.call(t) } || "-",
             "fires"    => fires.map { |t| formatter.call(t) },
           }.to_json
         rescue ex : Cron::ParseError
@@ -456,7 +456,7 @@ module CronLord
         end
         job = Job.find(run.job_id)
         job_name = job.try(&.name) || run.job_id
-        page_title = "Run · #{job_name}"
+        page_title = "Run | #{job_name}"
         nav_active = "runs"
         show_new_job = false
         theme = "light"
@@ -680,11 +680,11 @@ module CronLord
     private def format_next_local(job : Job) : String
       loc = job.location
       t = Cron.parse(job.schedule).next_after(Time.utc, loc)
-      return "—" unless t
+      return "-" unless t
       abbr = job.timezone == "UTC" ? "UTC" : job.timezone
       "#{t.in(loc).to_s("%F %H:%M")} #{abbr}"
     rescue
-      "—"
+      "-"
     end
 
     private def worker_base_url(env) : String
@@ -743,7 +743,7 @@ module CronLord
             meta: {"from" => JSON::Any.new("queued")})
           {200, {"status" => JSON::Any.new("cancelled"), "phase" => JSON::Any.new("queued")}}
         else
-          # Lost the race — somebody moved it between find and update.
+          # Lost the race - somebody moved it between find and update.
           {409, {"error" => JSON::Any.new("state_changed")}}
         end
       when "running"

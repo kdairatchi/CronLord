@@ -21,7 +21,7 @@
         <td class="mono"><%= entry.at_time.to_s("%F %H:%M:%S") %></td>
         <td><span class="badge mute"><%= entry.actor %></span></td>
         <td><span class="badge <%= action_class.call(entry.action) %>"><%= entry.action %></span></td>
-        <td class="mono small"><%= entry.target || "—" %></td>
+        <td class="mono small"><%= entry.target || "-" %></td>
         <td class="mono small muted"><%= meta_summary.call(entry) %></td>
       </tr>
     <% end %>

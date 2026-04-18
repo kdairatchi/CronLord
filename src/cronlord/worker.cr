@@ -6,7 +6,7 @@ module CronLord
   # Registered worker node. Workers authenticate via HMAC-SHA256 using the
   # shared secret set at registration (see Auth::Hmac).
   #
-  # The secret itself is never stored — only a SHA-256 hash for verification.
+  # The secret itself is never stored - only a SHA-256 hash for verification.
   # At registration time the plaintext is returned once so the operator can
   # paste it into the worker's config.
   class Worker

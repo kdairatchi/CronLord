@@ -94,7 +94,7 @@ task-level retry, resource pooling, and cross-task data dependencies.
 | Latency | Tickless, fires on time | Delayed under load (sometimes minutes) |
 | State persistence | SQLite | Workflow logs only |
 | Secrets | Env / TOML / your infra | GitHub Secrets |
-| Cost | Your infra cost | Free tier → $ under load |
+| Cost | Your infra cost | Free tier -> $ under load |
 
 **Pick CronLord** for ops-y jobs that need on-time execution on your
 own boxes. **Pick GHA schedule** for CI/CD tasks that need to run in

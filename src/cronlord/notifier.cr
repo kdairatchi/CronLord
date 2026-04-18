@@ -6,7 +6,7 @@ module CronLord
   # Best-effort outbound delivery when a run finishes. Two channels:
   #   - Generic webhook (job.args["webhook_url"]): JSON payload with run details.
   #   - Slack webhook (job.args["slack_webhook_url"]): Block Kit message.
-  # Failures are logged but never bubble up — the scheduler must not stall.
+  # Failures are logged but never bubble up; the scheduler must not stall.
   module Notifier
     DEFAULT_TIMEOUT  = 5
     MAX_ATTEMPTS     = 3
@@ -48,21 +48,21 @@ module CronLord
       }
     end
 
-    # Slack Block Kit payload. Status uses `[ok]`/`[fail]`/`[timeout]` tags — no emoji.
+    # Slack Block Kit payload. Status uses `[ok]`/`[fail]`/`[timeout]` tags; no emoji.
     def self.slack_payload(job : Job, run : Run)
       tag = status_tag(run.status)
       summary = "#{tag} #{job.name}"
       duration = if (s = run.started_at) && (f = run.finished_at)
                    "#{f - s}s"
                  else
-                   "—"
+                   "n/a"
                  end
-      exit_code = run.exit_code.nil? ? "—" : run.exit_code.to_s
+      exit_code = run.exit_code.nil? ? "n/a" : run.exit_code.to_s
 
       blocks = [
         JSON.parse({
           "type" => "section",
-          "text" => {"type" => "mrkdwn", "text" => "*#{summary}*\n`#{job.id}` · run `#{run.id}`"},
+          "text" => {"type" => "mrkdwn", "text" => "*#{summary}*\n`#{job.id}` - run `#{run.id}`"},
         }.to_json),
         JSON.parse({
           "type"   => "section",
@@ -97,7 +97,7 @@ module CronLord
     end
 
     private def self.truncate(s : String, limit : Int32) : String
-      s.size <= limit ? s : "#{s[0, limit]}…"
+      s.size <= limit ? s : "#{s[0, limit]}..."
     end
 
     private def self.post_with_retry(url : String, body : String, job_id : String,

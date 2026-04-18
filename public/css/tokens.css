@@ -1,4 +1,4 @@
-/*  CronLord — design tokens.
+/*  CronLord - design tokens.
     Editorial, dock-window. No neon, no cyberpunk, no hacker-terminal.  */
 
 :root {
@@ -29,12 +29,12 @@
   --n-90: #17161a;
   --n-95: #0f0e11;
 
-  /* semantic accent — muted ochre, not neon */
+  /* semantic accent - muted ochre, not neon */
   --accent-50:  #d8b17a;
   --accent-60:  #b88346;
   --accent-70:  #8e5c24;
 
-  /* status — muted, editorial */
+  /* status - muted, editorial */
   --ok:       #537b53;
   --ok-bg:    #e4ecdf;
   --warn:     #ab7832;

@@ -1,14 +1,14 @@
 # Contributing to CronLord
 
 Bug reports, specs, doc fixes, and small focused features are welcome.
-No new dependencies without opening an issue first — every shard added is a supply-chain surface and that policy is a hard rule.
+No new dependencies without opening an issue first - every shard added is a supply-chain surface and that policy is a hard rule.
 
 ## Setup
 
 ```sh
 git clone https://github.com/kdairatchi/CronLord && cd CronLord
 shards install
-shards build --release        # release binary → bin/cronlord
+shards build --release        # release binary -> bin/cronlord
 crystal spec                  # full test suite
 ./bin/ameba                   # lint
 ```
@@ -17,7 +17,7 @@ Crystal 1.19 or newer is required. For runtime setup (config, first job, API tok
 
 ## Hot paths
 
-| Touching…                    | Start here                                                          |
+| Touching...                    | Start here                                                          |
 |------------------------------|---------------------------------------------------------------------|
 | scheduling / cron parsing    | `src/cronlord/cron.cr`, `spec/cron_spec.cr`                         |
 | job execution                | `src/cronlord/runner/shell.cr`, `runner/http/`, `scheduler.cr`      |
@@ -32,7 +32,7 @@ Crystal 1.19 or newer is required. For runtime setup (config, first job, API tok
 
 ```sh
 # build
-shards install && shards build --release   # release binary → bin/cronlord
+shards install && shards build --release   # release binary -> bin/cronlord
 shards build                               # debug (faster iteration)
 
 # run
@@ -62,7 +62,7 @@ Prefixes in use:
 
 | Prefix              | When to use                                          |
 |---------------------|------------------------------------------------------|
-| `release:`          | version bump commits (`release: v0.3.6 — short desc`)|
+| `release:`          | version bump commits (`release: v0.3.6 - short desc`)|
 | `fix(scope):`       | bug fix with affected component in parens            |
 | `ci:`               | changes to `.github/workflows/` only                 |
 | `chore(scope):`     | housekeeping (gitignore, deps, tooling config)        |
@@ -73,8 +73,8 @@ Prefixes in use:
 
 Keep the summary under 72 characters. No period at the end. For multi-file changes use the narrowest scope that's still accurate.
 
-PRs that touch any file in the hot-paths table above must include a spec (new or updated) — do not mark the PR ready without one.
+PRs that touch any file in the hot-paths table above must include a spec (new or updated) - do not mark the PR ready without one.
 
 ## Security
 
-Report vulnerabilities privately — do not open a public issue. See [SECURITY.md](../SECURITY.md) for the reporting address and the supported-versions window.
+Report vulnerabilities privately - do not open a public issue. See [SECURITY.md](../SECURITY.md) for the reporting address and the supported-versions window.

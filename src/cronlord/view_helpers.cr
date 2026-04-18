@@ -14,7 +14,7 @@ module CronLord
 
     def duration_for(run : Run) : String
       s = run.started_at
-      return "—" unless s
+      return "-" unless s
       finish = run.finished_at || Time.utc.to_unix
       format_duration(finish - s)
     end
@@ -30,7 +30,7 @@ module CronLord
     end
 
     def theme_from(env) : String
-      # Placeholder — real preference is stored in localStorage by the layout
+      # Placeholder - real preference is stored in localStorage by the layout
       # script. Server-side default respects `data-theme` attr for SSR.
       "light"
     end
@@ -79,7 +79,7 @@ module CronLord
       entry.meta.map { |k, v|
         val = v.as_s? || v.as_i64?.try(&.to_s) || v.to_json
         "#{k}=#{val}"
-      }.join(" · ")
+      }.join(" | ")
     end
   end
 end

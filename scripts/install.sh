@@ -64,10 +64,10 @@ install_binary() {
   trap 'rm -rf "$tmp"' EXIT
   log "downloading $url"
   curl -fsSL "$url" -o "$tmp/cronlord.tar.gz" \
-    || die "download failed — check CRONLORD_VERSION or network"
+    || die "download failed - check CRONLORD_VERSION or network"
   log "downloading $sha_url"
   curl -fsSL "$sha_url" -o "$tmp/cronlord.tar.gz.sha256" \
-    || die "sha256 sidecar download failed — aborting"
+    || die "sha256 sidecar download failed - aborting"
 
   # The .sha256 file is in coreutils format: "<hex>  <filename>". Strip
   # the filename column and re-point it at our local tarball so
@@ -77,12 +77,12 @@ install_binary() {
   printf '%s  %s\n' "$expected" "$tmp/cronlord.tar.gz" > "$tmp/check"
   if command -v sha256sum >/dev/null 2>&1; then
     ( cd "$tmp" && sha256sum -c check >/dev/null ) \
-      || die "sha256 verification failed — refusing to install"
+      || die "sha256 verification failed - refusing to install"
   elif command -v shasum >/dev/null 2>&1; then
     ( cd "$tmp" && shasum -a 256 -c check >/dev/null ) \
-      || die "sha256 verification failed — refusing to install"
+      || die "sha256 verification failed - refusing to install"
   else
-    die "neither sha256sum nor shasum is available — cannot verify download"
+    die "neither sha256sum nor shasum is available - cannot verify download"
   fi
   log "sha256 ok"
 
@@ -110,7 +110,7 @@ TOML
 install_service() {
   cat >"$SERVICE" <<UNIT
 [Unit]
-Description=CronLord — visual self-hosted cron scheduler
+Description=CronLord - visual self-hosted cron scheduler
 After=network-online.target
 Wants=network-online.target
 
@@ -156,7 +156,7 @@ main() {
     systemctl enable --now cronlord
     log "cronlord is running on http://127.0.0.1:7070"
   else
-    log "install complete — start with: systemctl enable --now cronlord"
+    log "install complete - start with: systemctl enable --now cronlord"
   fi
 }
 

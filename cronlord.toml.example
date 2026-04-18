@@ -18,7 +18,7 @@ data_dir = "/var/lib/cronlord"
 # log_dir  = "/var/lib/cronlord/logs"
 
 ## Declarative job entries. Jobs defined here are re-upserted at boot and
-## tagged with source = "toml" — the UI lets you see them but deletes are
+## tagged with source = "toml" - the UI lets you see them but deletes are
 ## reversible (they come back next boot). Use the UI or API for ephemeral
 ## jobs.
 

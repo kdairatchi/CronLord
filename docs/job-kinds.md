@@ -13,7 +13,7 @@ into the run log.
 - **Working directory:** optional `working_dir` field (defaults to the
   scheduler's cwd, typically `/var/lib/cronlord` under systemd).
 - **Environment:** per-job env vars layer on top of the scheduler's env.
-  Don't rely on this for secrets — the values land in the DB as plain
+  Don't rely on this for secrets - the values land in the DB as plain
   text; use a secret manager that exports at runtime.
 - **Timeout:** `timeout_sec` > 0 sends SIGTERM at the deadline, SIGKILL
   2 seconds later. Exit status becomes `timeout`.
@@ -69,16 +69,16 @@ https://api.example.com/cron/daily-rollup
 
 Fields:
 
-- `method` — any standard HTTP verb. Default `GET`.
-- `url` — required. Scheme must be `http` or `https`. The runner rejects
+- `method` - any standard HTTP verb. Default `GET`.
+- `url` - required. Scheme must be `http` or `https`. The runner rejects
   `file://`, `gopher://`, and anything non-web to avoid SSRF from stored
   credentials.
-- `headers` — map of header name → value.
-- `body` — request body as a string (not an object — encode it yourself
+- `headers` - map of header name -> value.
+- `body` - request body as a string (not an object - encode it yourself
   to keep the contract predictable).
-- `expect_status` — integer or array of integers. If set, any other
+- `expect_status` - integer or array of integers. If set, any other
   response code is treated as a failure. Default: `2xx` is success.
-- `follow` — follow redirects. Default `true`.
+- `follow` - follow redirects. Default `true`.
 
 ### Response handling
 
@@ -92,7 +92,7 @@ and the total elapsed time. The run is marked `fail` if:
 ## claude
 
 Runs `claude -p <prompt>` using the local [Claude Code CLI]. Useful for
-agent-style scheduled tasks — a 5 a.m. repo scan, a weekly vault
+agent-style scheduled tasks - a 5 a.m. repo scan, a weekly vault
 summary, a nightly secret-rotation check.
 
 [Claude Code CLI]: https://github.com/anthropics/claude-code
@@ -154,10 +154,10 @@ by a best-effort fiber when a run reaches a terminal status (`success`,
 
 | Field | Shape | Purpose |
 | --- | --- | --- |
-| `webhook_url` | `POST` JSON with `job_id`, `run_id`, `status`, `exit_code`, `started_at`, `finished_at`, `error`, `trigger` | Generic automation (PagerDuty, custom dashboards, Zapier, …). |
+| `webhook_url` | `POST` JSON with `job_id`, `run_id`, `status`, `exit_code`, `started_at`, `finished_at`, `error`, `trigger` | Generic automation (PagerDuty, custom dashboards, Zapier, ...). |
 | `slack_webhook_url` | `POST` Slack Block Kit (`text` + `blocks`) | Slack channel posts. |
 
-The Slack field must begin with `https://hooks.slack.com/` — anything
+The Slack field must begin with `https://hooks.slack.com/` - anything
 else is refused so that a misconfigured or attacker-controlled URL can't
 receive the Slack-shaped payload. Status appears as a text tag
 (`[ok]`, `[fail]`, `[timeout]`, `[cancelled]`), never an emoji, so the
@@ -170,15 +170,15 @@ stderr when they give up; failures never block the scheduler.
 
 Each job has a `timezone` column (default `UTC`). The scheduler resolves
 it through Crystal's `Time::Location`, so any IANA zone your host
-supports works — `America/New_York`, `Europe/Berlin`, `Asia/Tokyo`, etc.
+supports works - `America/New_York`, `Europe/Berlin`, `Asia/Tokyo`, etc.
 The value is validated at save time; an unknown zone is rejected with
 `400`.
 
 DST is handled the POSIX-cron way:
 
-- On spring-forward, the missing wall-clock hour (`02:00`–`02:59` in the
-  US) simply doesn't fire that day.
-- On fall-back, the repeated wall-clock hour fires exactly once — the
+- On spring-forward, the missing wall-clock hour (`02:00`-`02:59` in the
+  US) doesn't fire that day.
+- On fall-back, the repeated wall-clock hour fires exactly once, on the
   first occurrence. A subsequent `next_after` call picks up from the
   next day.
 

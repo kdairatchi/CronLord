@@ -52,7 +52,7 @@ module CronLord
     end
 
     # Build an HTTP::Client using explicit host/port/tls keyword args so
-    # the call never aliases `HTTP::Client.new(uri)` — the generic form
+    # the call never aliases `HTTP::Client.new(uri)` - the generic form
     # masks the validation boundary and is what FLAW011 flags.
     def self.safe_client(uri : URI, timeout : Int32 = DEFAULT_TIMEOUT) : HTTP::Client
       tls = uri.scheme == "https"

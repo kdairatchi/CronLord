@@ -4,7 +4,7 @@ Three install paths: Docker, the `install.sh` one-liner for systemd hosts,
 and building from source. Pick whichever matches the box you're putting
 this on.
 
-## Option 1 — Docker
+## Option 1 - Docker
 
 ```sh
 docker run -d --name cronlord \
@@ -23,7 +23,7 @@ The image runs as a non-root `cronlord` user and stores everything under
 `/var/lib/cronlord`. Mount a named volume there if you want the jobs
 to survive container recreation.
 
-## Option 2 — install.sh (systemd host)
+## Option 2 - install.sh (systemd host)
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/kdairatchi/CronLord/main/scripts/install.sh | sudo sh
@@ -44,7 +44,7 @@ curl http://127.0.0.1:7070/healthz
 # {"status":"ok","version":"0.3.6"}
 ```
 
-## Option 3 — from source
+## Option 3 - from source
 
 You need Crystal 1.19 or newer and `shards`.
 
@@ -94,7 +94,7 @@ admin_token = "replace-me-with-a-long-random-string"
 
 Every request to `/api/*` then needs either an `Authorization: Bearer <token>`
 header or a `?token=` query parameter. The web UI is not token-gated in
-v0.1 — bind to `127.0.0.1` and front with a reverse proxy that handles
+v0.1 - bind to `127.0.0.1` and front with a reverse proxy that handles
 your existing auth (nginx basic auth, Cloudflare Access, Tailscale
 Serve, etc.).
 
@@ -141,6 +141,6 @@ they're immune to accidental UI deletes.
 
 ## Next
 
-- [Job Kinds](job-kinds.md) — `shell` vs `http` vs `claude`.
-- [API](api.md) — script CronLord from CI, Terraform, or your own tools.
-- [Deployment](deployment.md) — put it behind a reverse proxy.
+- [Job Kinds](job-kinds.md) - `shell` vs `http` vs `claude`.
+- [API](api.md) - script CronLord from CI, Terraform, or your own tools.
+- [Deployment](deployment.md) - put it behind a reverse proxy.

@@ -1,5 +1,5 @@
 module CronLord
-  # Prometheus text-format exposition. Zero dependencies — we just build the
+  # Prometheus text-format exposition. Zero dependencies - we just build the
   # string each scrape. If /metrics ever becomes hot enough for that to
   # matter, memoize with a ttl cache.
   module Metrics

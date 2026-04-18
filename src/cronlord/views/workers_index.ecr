@@ -9,7 +9,7 @@
     <h3 style="margin-top:0;">No workers yet</h3>
     <p class="muted">Register a worker to run jobs whose executor is
     <code>worker</code>. The scheduler hands those jobs out via the
-    lease protocol — see the <a href="/settings">Settings</a> page for
+    lease protocol. See the <a href="/settings">Settings</a> page for
     the base URL.</p>
     <a href="/workers/new"><button class="primary">Register your first worker</button></a>
   </div>
@@ -37,7 +37,7 @@
           <td><span class="badge <%= ViewHelpers.worker_state_class(state) %>"><%= state %></span></td>
           <td>
             <% if worker.labels.empty? %>
-              <span class="muted small">—</span>
+              <span class="muted small">-</span>
             <% else %>
               <% worker.labels.each do |label| %>
                 <span class="badge mute"><%= label %></span>

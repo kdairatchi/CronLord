@@ -1,6 +1,6 @@
 /*  Reset + primitives. Dock-window pattern: the app is a persistent
     three-pane window (sidebar, topbar, content) that never scrolls as a
-    whole — only the content pane scrolls.  */
+    whole - only the content pane scrolls.  */
 
 *, *::before, *::after { box-sizing: border-box; }
 

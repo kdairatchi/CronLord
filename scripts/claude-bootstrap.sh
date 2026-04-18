@@ -1,6 +1,6 @@
 #!/bin/sh
 # scripts/claude-bootstrap.sh
-# CronLord environment probe — deterministic, POSIX sh, zero external deps.
+# CronLord environment probe - deterministic, POSIX sh, zero external deps.
 # Output: key=value lines, one per line. First line is a timestamp comment.
 # Every check is isolated; a failure yields a sentinel, never aborts the script.
 
@@ -11,7 +11,7 @@ cd "$REPO_DIR"
 
 # ISO8601 UTC timestamp (POSIX date -u)
 TS="$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')"
-printf '# cronlord bootstrap probe — %s\n' "$TS"
+printf '# cronlord bootstrap probe - %s\n' "$TS"
 
 # --- shard_version -----------------------------------------------------------
 # grep the `version:` key at the top-level of shard.yml (first occurrence,
@@ -43,7 +43,7 @@ printf 'git_sha=%s\n' "$git_sha"
 
 # --- git_dirty ---------------------------------------------------------------
 # Count non-ignored modified/untracked files. git status --porcelain already
-# respects .gitignore — no special-casing needed.
+# respects .gitignore - no special-casing needed.
 git_dirty='-'
 _dirty="$(git status --porcelain 2>/dev/null | wc -l | tr -d '[:space:]')"
 [ -n "$_dirty" ] && git_dirty="$_dirty"

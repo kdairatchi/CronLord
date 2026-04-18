@@ -3,7 +3,7 @@ require "option_parser"
 module CronLord
   module CLI
     USAGE = <<-U
-      cronlord — visual cron scheduler
+      cronlord - visual cron scheduler
 
       commands:
         serve | server             run the scheduler + HTTP API
@@ -62,7 +62,7 @@ module CronLord
       end
 
       # `worker run` is the only subcommand that runs on a remote host
-      # without a scheduler DB — dispatch before opening SQLite.
+      # without a scheduler DB - dispatch before opening SQLite.
       if rest.first == "worker" && rest[1]? == "run"
         return cmd_worker_run(rest[2..])
       end
@@ -152,9 +152,9 @@ module CronLord
         worker, plaintext = Worker.register(name, labels: labels)
         puts "id:     #{worker.id}"
         puts "name:   #{worker.name}"
-        puts "secret (shown once — copy it now):"
+        puts "secret (shown once - copy it now):"
         puts plaintext
-        STDERR.puts "note: the value above is not recoverable — store it on the worker host now."
+        STDERR.puts "note: the value above is not recoverable - store it on the worker host now."
         0
       when "list"
         Worker.all.each do |w|
@@ -324,7 +324,7 @@ module CronLord
     end
 
     private def self.trunc(s : String, n : Int32) : String
-      s.size > n ? "#{s[0, n - 1]}…" : s
+      s.size > n ? "#{s[0, n - 1]}..." : s
     end
   end
 end

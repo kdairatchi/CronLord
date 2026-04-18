@@ -3,13 +3,13 @@
 All notable changes to CronLord. Dates are in UTC. This project follows
 semantic versioning.
 
-## [0.3.6] — 2026-04-18
+## [0.3.6] - 2026-04-18
 
 ### Added
 - **Run cancellation.** `POST /api/runs/:id/cancel` (and a Cancel button
   on the run detail page) now cancels queued or running runs:
   - Queued runs flip straight to `cancelled` before dispatch.
-  - Locally-executed shell runs receive a `SIGTERM → SIGKILL` via a
+  - Locally-executed shell runs receive a `SIGTERM -> SIGKILL` via a
     new process-local `Runner::CancelRegistry`; the run row lands in
     `cancelled` with the subprocess killed.
   - Worker-leased runs flip to `cancelling`; the worker's next
@@ -25,10 +25,10 @@ semantic versioning.
 
 ### Fixed
 - `WorkerLoop#execute` no longer propagates a finish-call failure up
-  the poll loop — logs and continues instead, so a lost lease race
+  the poll loop - logs and continues instead, so a lost lease race
   doesn't take the worker down.
 
-## [0.3.5] — 2026-04-18
+## [0.3.5] - 2026-04-18
 
 ### Added
 - **SBOM + SLSA provenance on GHCR images.** `docker/build-push-action`
@@ -41,7 +41,7 @@ semantic versioning.
   reporting address, disclosure SLO, in-scope surfaces, and the
   cosign verification command.
 
-## [0.3.4] — 2026-04-18
+## [0.3.4] - 2026-04-18
 
 ### Added
 - **Cosign-signed images.** The release workflow now signs every
@@ -59,7 +59,7 @@ semantic versioning.
   `"/src/public": not found` and the v0.3.3 docker publish step never
   pushed an image to GHCR.
 
-## [0.3.3] — 2026-04-18
+## [0.3.3] - 2026-04-18
 
 ### Added
 - **GHCR publishing.** The release workflow now builds a multi-arch
@@ -78,7 +78,7 @@ semantic versioning.
   `docs/deployment.md` now reference `ghcr.io/kdairatchi/cronlord:latest`
   instead of a never-published `cronlord:latest`.
 
-## [0.3.2] — 2026-04-18
+## [0.3.2] - 2026-04-18
 
 ### Fixed
 - **Release workflow.** `Dockerfile.release` now installs the
@@ -90,11 +90,11 @@ semantic versioning.
 ### Changed
 - `README.md` now shows a banner from `public/img/cronlord-banner.png`.
 
-## [0.3.1] — 2026-04-18
+## [0.3.1] - 2026-04-18
 
 ### Security
 - **Outbound HTTP guard.** All notifier and `http` runner requests now
-  route through `CronLord::HttpGuard` — scheme is restricted to
+  route through `CronLord::HttpGuard` - scheme is restricted to
   `http`/`https`, the Slack channel enforces the `https://hooks.slack.com/`
   prefix via a real allowlist, and an opt-in
   `CRONLORD_BLOCK_PRIVATE_NETS=1` resolves the target host and refuses
@@ -104,13 +104,13 @@ semantic versioning.
 
 ### Fixed
 - Job and run SQL selects are hoisted to named constants and the
-  worker-lease query builds its `IN (?,?,…)` clause through a helper
+  worker-lease query builds its `IN (?,?,...)` clause through a helper
   so every DB call receives a literal SQL string.
 - `cronlord worker register` no longer interpolates the plaintext
-  secret into a `puts` label line — the value prints on its own line
+  secret into a `puts` label line - the value prints on its own line
   after a shown-once notice.
 
-## [0.3.0] — 2026-04-17
+## [0.3.0] - 2026-04-17
 
 ### Added
 - **Timezone-aware scheduling.** `Cron#next_after` now accepts a
@@ -122,7 +122,7 @@ semantic versioning.
   `args.slack_webhook_url` (must start with `https://hooks.slack.com/`)
   to post a Block Kit message with status, trigger, duration, exit
   code, and the error on failed runs. Status is shown as a text tag
-  (`[ok]`/`[fail]`/`[timeout]`/`[cancelled]`) — no emoji.
+  (`[ok]`/`[fail]`/`[timeout]`/`[cancelled]`) - no emoji.
 - **GitHub Actions.** `.github/workflows/ci.yml` runs `crystal spec`
   and a debug build on every push and PR; `release.yml` tags build
   static `linux-amd64` + `linux-arm64` tarballs via Buildx + QEMU
@@ -143,9 +143,9 @@ semantic versioning.
 
 ### Fixed
 - Scheduler no longer loops forever on a job with an invalid
-  timezone — the job is skipped and the error is logged.
+  timezone - the job is skipped and the error is logged.
 
-## [0.2.0] — 2026-04-17
+## [0.2.0] - 2026-04-17
 
 ### Added
 - Worker lease / heartbeat / finish protocol over HMAC-signed HTTP.
@@ -159,7 +159,7 @@ semantic versioning.
 ### Changed
 - Scheduler splits local vs. remote (`executor = "worker"`) execution.
 
-## [0.1.0] — 2026-03-20
+## [0.1.0] - 2026-03-20
 
 Initial scheduler, SQLite persistence, web UI, JSON API, SSE logs,
 generic webhook notifier, `shell` + `http` + `claude` runners.

@@ -5,7 +5,7 @@ require "uri"
 
 module CronLord
   # Local executor used by the reference worker. Runs the payload shipped
-  # by the scheduler without touching the scheduler's DB — output is
+  # by the scheduler without touching the scheduler's DB - output is
   # captured into a bounded String and returned so the caller can POST it
   # to /api/workers/finish.
   class WorkerRunner
@@ -31,7 +31,7 @@ module CronLord
         status: "fail",
         exit_code: nil,
         error: "worker does not support kind: #{kind}",
-        log: "[worker] unsupported kind '#{kind}' — requeue with executor=local",
+        log: "[worker] unsupported kind '#{kind}' - requeue with executor=local",
       )
     end
 

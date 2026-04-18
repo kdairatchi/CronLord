@@ -7,26 +7,26 @@ and one binary.
 ## Process layout
 
 ```
-┌────────────────────────────────────────────────────────┐
-│  cronlord server                                        │
-│                                                         │
-│  ┌─────────────┐   ┌──────────────┐   ┌──────────────┐  │
-│  │  Scheduler  │──▶│   Runners    │──▶│  LogBuffer   │  │
-│  │  (tickless) │   │ shell / http │   │ per-run file │  │
-│  └─────────────┘   │ claude       │   └──────────────┘  │
-│         │          └──────────────┘          ▲         │
-│         ▼                                    │         │
-│  ┌─────────────┐   ┌──────────────┐          │         │
-│  │   SQLite    │◀──│  Kemal HTTP  │──────────┘         │
-│  │  (WAL + FK) │   │   UI + API   │   SSE streams      │
-│  └─────────────┘   └──────────────┘                    │
-│                           │                            │
-│                           ▼                            │
-│                    ┌──────────────┐                    │
-│                    │   Notifier   │  → webhook POST    │
-│                    │  (spawn/fire)│                    │
-│                    └──────────────┘                    │
-└────────────────────────────────────────────────────────┘
++--------------------------------------------------------+
+|  cronlord server                                       |
+|                                                        |
+|  +-------------+   +--------------+   +--------------+ |
+|  |  Scheduler  |-->|   Runners    |-->|  LogBuffer   | |
+|  |  (tickless) |   | shell / http |   | per-run file | |
+|  +-------------+   | claude       |   +--------------+ |
+|         |          +--------------+          ^         |
+|         v                                    |         |
+|  +-------------+   +--------------+           |        |
+|  |   SQLite    |<--|  Kemal HTTP  |-----------+        |
+|  |  (WAL + FK) |   |   UI + API   |   SSE streams      |
+|  +-------------+   +--------------+                    |
+|                           |                            |
+|                           v                            |
+|                    +--------------+                    |
+|                    |   Notifier   |  -> webhook POST   |
+|                    |  (spawn/fire)|                    |
+|                    +--------------+                    |
++--------------------------------------------------------+
 ```
 
 One OS process. Crystal fibers multiplex the scheduler loop, the HTTP
@@ -45,8 +45,8 @@ server, and every concurrent job runner.
 
 Two Channels drive the loop:
 
-- `@wake : Channel(Nil)` — UI/API signal that the job set changed.
-- `@stop : Channel(Nil)` — graceful shutdown on SIGTERM.
+- `@wake : Channel(Nil)` - UI/API signal that the job set changed.
+- `@stop : Channel(Nil)` - graceful shutdown on SIGTERM.
 
 The scheduler never busy-loops. Idle CPU is literally zero.
 
@@ -73,8 +73,8 @@ proper queueing.
 
 Each job has an `executor` field:
 
-- `local` — the scheduler spawns the runner in-process (default).
-- `worker` — the scheduler creates the run row as `queued` and leaves
+- `local` - the scheduler spawns the runner in-process (default).
+- `worker` - the scheduler creates the run row as `queued` and leaves
   it there. Remote workers poll `/api/workers/lease` to claim and
   execute it. See [API: Worker protocol](api.md#worker-protocol-hmac).
 
@@ -95,11 +95,11 @@ and is responsible for:
 
 The three runners share almost no code:
 
-- **shell** (`runner/shell.cr`) — `Process.run("/bin/sh", ["-c", command])`
+- **shell** (`runner/shell.cr`) - `Process.run("/bin/sh", ["-c", command])`
   with env inheritance + overrides.
-- **http** (`runner/http.cr`) — parses plain URL or JSON, enforces the
+- **http** (`runner/http.cr`) - parses plain URL or JSON, enforces the
   `http`/`https` scheme allowlist, captures status + 32 KB of body.
-- **claude** (`runner/claude.cr`) — shells out to `claude -p <prompt>`;
+- **claude** (`runner/claude.cr`) - shells out to `claude -p <prompt>`;
   respects `args["model"]`.
 
 Adding a new kind is ~100 lines: implement `run`, wire it in `scheduler.cr`,
@@ -111,7 +111,7 @@ add a `select` option in the job editor, document it.
 `logs/<run_id>.log`:
 
 - Two fibers pump stdout and stderr into the file line-by-line.
-- The HTTP server reads the file directly for SSE streaming — no
+- The HTTP server reads the file directly for SSE streaming - no
   in-memory fan-out. This keeps the scheduler simple; the downside is
   that tail-follow on a live run isn't implemented in v0.1 (the SSE
   stream sends the current file contents then an `end` event).
@@ -129,16 +129,16 @@ don't split them, and splits on top-level semicolons.
 
 ### Schema at a glance
 
-- `jobs` — scheduling config (21 columns incl. `executor`, `labels_json`,
+- `jobs` - scheduling config (21 columns incl. `executor`, `labels_json`,
   args/env JSON blobs).
-- `runs` — one row per execution; `status`, `exit_code`, `log_path`,
+- `runs` - one row per execution; `status`, `exit_code`, `log_path`,
   `trigger`, `error`, `attempt`, plus `worker_id`, `lease_expires_at`,
   `heartbeat_at` for remote runs.
-- `audit` — append-only; `at`, `actor`, `action`, `target`, `meta_json`.
-- `workers` — registered remote workers (`id`, `name`, `secret_hash`,
+- `audit` - append-only; `at`, `actor`, `action`, `target`, `meta_json`.
+- `workers` - registered remote workers (`id`, `name`, `secret_hash`,
   `labels_json`, `last_seen`).
-- `tokens` — API tokens (stub in v0.1; admin token is env/toml for now).
-- `schema_migrations` — version tracking.
+- `tokens` - API tokens (stub in v0.1; admin token is env/toml for now).
+- `schema_migrations` - version tracking.
 
 ## HTTP server
 
@@ -151,15 +151,15 @@ Views live under `src/cronlord/views/` and are baked into the binary via
 
 ### Views
 
-- `layout.ecr` — the dock-window chrome (sidebar + topbar + content).
-- `overview.ecr` — 4 KPI cards + "Next fires" + "Recent runs".
-- `jobs_index.ecr` — table of all jobs.
-- `job_edit.ecr` — 4-panel editor (Identity, Schedule, Command,
+- `layout.ecr` - the dock-window chrome (sidebar + topbar + content).
+- `overview.ecr` - 4 KPI cards + "Next fires" + "Recent runs".
+- `jobs_index.ecr` - table of all jobs.
+- `job_edit.ecr` - 4-panel editor (Identity, Schedule, Command,
   Execution) with live cron preview via `/api/cron/explain`.
-- `runs_index.ecr` — filterable run history.
-- `run_show.ecr` — single-run detail with SSE log pane.
-- `audit.ecr` — audit trail.
-- `settings.ecr` — config dump + token info.
+- `runs_index.ecr` - filterable run history.
+- `run_show.ecr` - single-run detail with SSE log pane.
+- `audit.ecr` - audit trail.
+- `settings.ecr` - config dump + token info.
 
 CSS is two files: `public/css/tokens.css` (design tokens) and
 `public/css/base.css` (component rules). No build. No framework.
@@ -178,7 +178,7 @@ and never raise back into the scheduler.
 - **UI:** not authenticated in-process. Reverse-proxy it.
 - **Workers:** HMAC-SHA256 with a 60-second skew window. Secrets are
   stored as SHA-256 hashes; the plaintext is returned once at register.
-  The HMAC key is `sha256(plaintext)` — the worker hashes the plaintext
+  The HMAC key is `sha256(plaintext)` - the worker hashes the plaintext
   locally once to derive the same key the server holds, so the server
   never sees the plaintext after registration.
 - **Job inputs:** a `shell` command can do anything the scheduler's

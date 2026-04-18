@@ -187,7 +187,7 @@
       const r = await fetch("/api/cron/explain?" + qs);
       const d = await r.json();
       describeEl.textContent = d.describe || d.error || input.value;
-      nextEl.textContent = "Next: " + (d.next || "—");
+      nextEl.textContent = "Next: " + (d.next || "-");
     } catch (e) { /* ignore */ }
   };
   let t;
