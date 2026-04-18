@@ -41,7 +41,7 @@ Confirm it's alive:
 
 ```sh
 curl http://127.0.0.1:7070/healthz
-# {"status":"ok","version":"0.3.4"}
+# {"status":"ok","version":"0.3.5"}
 ```
 
 ## Option 3 — from source

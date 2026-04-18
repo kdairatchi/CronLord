@@ -3,6 +3,19 @@
 All notable changes to CronLord. Dates are in UTC. This project follows
 semantic versioning.
 
+## [0.3.5] — 2026-04-18
+
+### Added
+- **SBOM + SLSA provenance on GHCR images.** `docker/build-push-action`
+  now runs with `sbom: true` and `provenance: mode=max`, so every
+  pushed image carries an attached SPDX SBOM and an SLSA build
+  provenance attestation. Inspect with
+  `cosign download sbom ghcr.io/kdairatchi/cronlord:<tag>` or
+  `docker buildx imagetools inspect --format "{{ json .SBOM }}"`.
+- **`SECURITY.md`.** Explicit supported-versions window, vulnerability
+  reporting address, disclosure SLO, in-scope surfaces, and the
+  cosign verification command.
+
 ## [0.3.4] — 2026-04-18
 
 ### Added

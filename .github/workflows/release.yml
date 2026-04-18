@@ -127,6 +127,8 @@ jobs:
           file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          sbom: true
+          provenance: mode=max
           tags: ${{ steps.tags.outputs.tags }}
           labels: |
             org.opencontainers.image.title=CronLord

@@ -67,6 +67,11 @@ Open `http://localhost:7070`.
 
 ## Status
 
+v0.3.5 — every pushed GHCR image now carries an attached SPDX SBOM
+and SLSA `mode=max` build provenance attestation via
+`docker/build-push-action`'s native flags. Ships alongside a new
+`SECURITY.md` that documents the supported-versions window,
+reporting address, and cosign verify command. No runtime changes.
 v0.3.4 — the release workflow now keyless-signs every pushed GHCR
 reference with cosign via GitHub OIDC, and the runtime `Dockerfile`
 `COPY`s `public/` into the build stage so the docker publish step
