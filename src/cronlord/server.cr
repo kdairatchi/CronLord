@@ -125,6 +125,19 @@ module CronLord
         ).to_json
       end
 
+      post "/api/runs/:id/cancel" do |env|
+        next unless require_token(env, cfg)
+        id = env.params.url["id"]
+        run = Run.find(id)
+        if run.nil?
+          env.response.status_code = 404
+          next({"error" => "not_found"}.to_json)
+        end
+        env.response.content_type = "application/json"
+        env.response.status_code, body = apply_cancel(run)
+        body.to_json
+      end
+
       # SSE log tail; simple, proxy-friendly, works without extra JS libs.
       get "/api/runs/:id/log" do |env|
         next unless require_token(env, cfg)
@@ -176,6 +189,11 @@ module CronLord
         if run.nil? || run.worker_id != worker.id
           env.response.status_code = 404
           next({"error" => "run not leased by this worker"}.to_json)
+        end
+        if run.status == "cancelling"
+          env.response.status_code = 410
+          env.response.content_type = "application/json"
+          next({"cancelled" => true}.to_json)
         end
         run.heartbeat!(lease_sec)
         env.response.content_type = "application/json"
@@ -416,6 +434,18 @@ module CronLord
         duration_for = ->(r : Run) { ViewHelpers.duration_for(r) }
 
         render "src/cronlord/views/runs_index.ecr", "src/cronlord/views/layout.ecr"
+      end
+
+      post "/runs/:id/cancel" do |env|
+        run = find_run(env.params.url["id"])
+        if run.nil?
+          env.response.status_code = 404
+          next "Not found"
+        end
+        apply_cancel(run)
+        env.response.headers["Location"] = "/runs/#{run.id}"
+        env.response.status_code = 303
+        ""
       end
 
       get "/runs/:id" do |env|
@@ -701,6 +731,42 @@ module CronLord
     private def label_match?(required : Array(String), available : Array(String)) : Bool
       return true if required.empty?
       required.any? { |l| available.includes?(l) }
+    end
+
+    # Work out what cancelling `run` means from its current state and do it.
+    # Returns `{status_code, body}` for the caller to serialize.
+    private def apply_cancel(run : Run) : Tuple(Int32, Hash(String, JSON::Any))
+      case run.status
+      when "queued"
+        if Run.cancel_queued!(run.id)
+          Audit.write("run.cancel", actor: "api", target: "run:#{run.id}",
+            meta: {"from" => JSON::Any.new("queued")})
+          {200, {"status" => JSON::Any.new("cancelled"), "phase" => JSON::Any.new("queued")}}
+        else
+          # Lost the race — somebody moved it between find and update.
+          {409, {"error" => JSON::Any.new("state_changed")}}
+        end
+      when "running"
+        # Flip to `cancelling`. Local shell runners see the signal via
+        # CancelRegistry; worker-leased runs get a 410 on next heartbeat.
+        if Run.mark_cancelling!(run.id)
+          delivered = Runner::CancelRegistry.signal(run.id)
+          Audit.write("run.cancel", actor: "api", target: "run:#{run.id}",
+            meta: {"from" => JSON::Any.new("running"),
+                   "local" => JSON::Any.new(delivered)})
+          {202, {
+            "status" => JSON::Any.new("cancelling"),
+            "phase" => JSON::Any.new(delivered ? "local_signalled" : "awaiting_worker"),
+          }}
+        else
+          {409, {"error" => JSON::Any.new("state_changed")}}
+        end
+      when "cancelling"
+        {202, {"status" => JSON::Any.new("cancelling"), "phase" => JSON::Any.new("already_pending")}}
+      else
+        {409, {"error" => JSON::Any.new("terminal"),
+               "status" => JSON::Any.new(run.status)}}
+      end
     end
   end
 end

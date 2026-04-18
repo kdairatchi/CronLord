@@ -3,6 +3,31 @@
 All notable changes to CronLord. Dates are in UTC. This project follows
 semantic versioning.
 
+## [0.3.6] — 2026-04-18
+
+### Added
+- **Run cancellation.** `POST /api/runs/:id/cancel` (and a Cancel button
+  on the run detail page) now cancels queued or running runs:
+  - Queued runs flip straight to `cancelled` before dispatch.
+  - Locally-executed shell runs receive a `SIGTERM → SIGKILL` via a
+    new process-local `Runner::CancelRegistry`; the run row lands in
+    `cancelled` with the subprocess killed.
+  - Worker-leased runs flip to `cancelling`; the worker's next
+    heartbeat returns `410 Gone` with `{"cancelled":true}`, the
+    reference worker aborts the subprocess, and reports
+    `status = cancelled` via `/api/workers/finish`.
+  - Every cancel writes a `run.cancel` audit row with the prior state
+    and whether a local runner was signalled or a worker has the
+    lease.
+  - `WorkerClient.heartbeat` now raises a dedicated
+    `WorkerClient::CancelledError` on `410` so external
+    re-implementations can surface the signal.
+
+### Fixed
+- `WorkerLoop#execute` no longer propagates a finish-call failure up
+  the poll loop — logs and continues instead, so a lost lease race
+  doesn't take the worker down.
+
 ## [0.3.5] — 2026-04-18
 
 ### Added

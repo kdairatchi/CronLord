@@ -137,6 +137,29 @@ module CronLord
       find(row_id, db)
     end
 
+    # Flip a queued run to `cancelled` atomically. Returns true if the
+    # row was still `queued` and got updated, false otherwise (already
+    # running, terminal, or not found). Safe to call while the scheduler
+    # is scanning the queue.
+    def self.cancel_queued!(id : String, db = DB.conn) : Bool
+      now = Time.utc.to_unix
+      db.exec(
+        "UPDATE runs SET status='cancelled', finished_at=?, error='cancelled by operator' " \
+        "WHERE id=? AND status='queued'",
+        now, id).rows_affected > 0
+    end
+
+    # Flip a running run to `cancelling` atomically. Returns true if the
+    # row was still `running` (either local or leased to a worker) and got
+    # updated. Local shell runners poll the CancelRegistry for the actual
+    # signal; worker-leased runs learn about it on their next heartbeat.
+    def self.mark_cancelling!(id : String, db = DB.conn) : Bool
+      db.exec(
+        "UPDATE runs SET status='cancelling', error=COALESCE(error, 'cancel requested') " \
+        "WHERE id=? AND status='running'",
+        id).rows_affected > 0
+    end
+
     def heartbeat!(lease_sec : Int32, db = DB.conn) : Nil
       now = Time.utc.to_unix
       @heartbeat_at = now

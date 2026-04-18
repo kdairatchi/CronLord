@@ -46,17 +46,25 @@ module CronLord
       log "leased run=#{run_id} job=#{job_id}"
 
       heartbeat_done = Channel(Nil).new
-      spawn run_heartbeat(run_id, lease.heartbeat_every, heartbeat_done)
+      cancel_chan = Channel(Nil).new(1)
+      spawn run_heartbeat(run_id, lease.heartbeat_every, heartbeat_done, cancel_chan)
 
-      result = WorkerRunner.run(lease.job)
+      result = WorkerRunner.run(lease.job, cancel_chan: cancel_chan)
 
       heartbeat_done.send(nil) rescue nil
 
-      @client.finish(run_id, result.status, result.exit_code, result.error, result.log)
-      log "finished run=#{run_id} status=#{result.status} exit=#{result.exit_code.inspect}"
+      begin
+        @client.finish(run_id, result.status, result.exit_code, result.error, result.log)
+        log "finished run=#{run_id} status=#{result.status} exit=#{result.exit_code.inspect}"
+      rescue ex : WorkerClient::Error
+        # Finish can race with a reaper on a lost lease; log but don't crash
+        # the whole worker loop — next lease takes over.
+        log "finish failed: #{ex.message}"
+      end
     end
 
-    private def run_heartbeat(run_id : String, every : Int32, done : Channel(Nil)) : Nil
+    private def run_heartbeat(run_id : String, every : Int32, done : Channel(Nil),
+                              cancel_chan : Channel(Nil)) : Nil
       interval = {every, 5}.max
       loop do
         select
@@ -65,6 +73,10 @@ module CronLord
         when timeout(interval.seconds)
           begin
             @client.heartbeat(run_id, @lease_sec)
+          rescue WorkerClient::CancelledError
+            log "cancel received for run=#{run_id}; signalling runner"
+            cancel_chan.send(nil) rescue nil
+            break
           rescue ex
             log "heartbeat failed: #{ex.message}"
           end

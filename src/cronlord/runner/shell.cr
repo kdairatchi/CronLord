@@ -43,25 +43,37 @@ module CronLord
         spawn pipe_into(stdout_r, buffer, :stdout, done_out)
         spawn pipe_into(stderr_r, buffer, :stderr, done_err)
 
+        cancel_chan = CancelRegistry.register(run.id)
         timeout = job.timeout_sec
         status : Process::Status? = nil
         timed_out = false
+        cancelled = false
+
+        waiter = Channel(Process::Status).new(1)
+        spawn { waiter.send(process.wait) }
 
         if timeout > 0
-          waiter = Channel(Process::Status).new(1)
-          spawn { waiter.send(process.wait) }
           select
           when st = waiter.receive
             status = st
+          when cancel_chan.receive
+            cancelled = true
+            kill_process(process)
+            status = waiter.receive
           when timeout(timeout.seconds)
             timed_out = true
-            process.signal(Signal::TERM) rescue nil
-            sleep 2.seconds
-            process.signal(Signal::KILL) rescue nil
+            kill_process(process)
             status = waiter.receive
           end
         else
-          status = process.wait
+          select
+          when st = waiter.receive
+            status = st
+          when cancel_chan.receive
+            cancelled = true
+            kill_process(process)
+            status = waiter.receive
+          end
         end
 
         done_out.receive
@@ -69,7 +81,10 @@ module CronLord
 
         st = status.not_nil!
         code = st.exit_code
-        if timed_out
+        if cancelled
+          buffer.write("[cancelled by operator, killed]", :meta)
+          run.mark_finished("cancelled", code, "cancelled by operator")
+        elsif timed_out
           buffer.write("[timeout after #{timeout}s, killed]", :meta)
           run.mark_finished("timeout", code, "timeout after #{timeout}s")
         elsif st.success?
@@ -79,7 +94,14 @@ module CronLord
         end
         code
       ensure
+        CancelRegistry.unregister(run.id)
         buffer.close rescue nil
+      end
+
+      private def self.kill_process(process)
+        process.signal(Signal::TERM) rescue nil
+        sleep 2.seconds
+        process.signal(Signal::KILL) rescue nil
       end
 
       private def self.pipe_into(io : IO, buffer : LogBuffer, stream : Symbol, done : Channel(Nil))

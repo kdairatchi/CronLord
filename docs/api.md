@@ -11,12 +11,12 @@ standard HTTP status codes with an `{"error": "..."}` body.
 
 ### `GET /healthz`
 
-Unauthenticated. Returns `{"status":"ok","version":"0.3.5"}`. Use for
+Unauthenticated. Returns `{"status":"ok","version":"0.3.6"}`. Use for
 liveness probes.
 
 ### `GET /api/version`
 
-Unauthenticated. Returns `{"version":"0.3.5"}`.
+Unauthenticated. Returns `{"version":"0.3.6"}`.
 
 ## Jobs
 
@@ -101,6 +101,28 @@ with an `event: end` frame carrying the final status.
 ```sh
 curl -N -H "Authorization: Bearer $TOK" \
   http://localhost:7070/api/runs/$RUN_ID/log
+```
+
+### `POST /api/runs/:id/cancel`
+
+Cancel a queued or running run. The behavior depends on current state:
+
+| From state | Response | Body `phase` | Effect |
+| --- | --- | --- | --- |
+| `queued` | `200` | `"queued"` | Flipped to `cancelled`; never dispatched. |
+| `running` (scheduler-executed) | `202` | `"local_signalled"` | `SIGTERM` → `SIGKILL` after 2s; row ends `cancelled`. |
+| `running` (worker-leased) | `202` | `"awaiting_worker"` | Row flipped to `cancelling`; worker's next heartbeat returns `410` and it aborts the subprocess. |
+| `cancelling` | `202` | `"already_pending"` | No-op; prior request still in flight. |
+| Any terminal status | `409` | — | Returns `{"error":"terminal","status":"success"}` etc. |
+
+Every cancel writes a `run.cancel` row to the audit log with
+`meta.from = <prior state>` and (for running runs) `meta.local =
+true|false` indicating whether the scheduler signalled a local runner
+or handed off to a remote worker.
+
+```sh
+curl -XPOST -H "Authorization: Bearer $TOK" \
+  http://localhost:7070/api/runs/$RUN_ID/cancel
 ```
 
 ## Cron helpers
@@ -245,8 +267,14 @@ Extend the lease. Call at least once per `heartbeat_every` seconds
 {"run_id": "374f2b6c-...", "lease_sec": 60}
 ```
 
-Returns `{"lease_expires_at": <unix>}` or `404` if the run is not
-leased by this worker (possibly reaped — abort execution).
+Returns `{"lease_expires_at": <unix>}` or:
+
+- `404` if the run is not leased by this worker (possibly reaped —
+  abort execution).
+- `410 Gone` with `{"cancelled": true}` when an operator cancelled the
+  run. The worker must abort the subprocess and may POST to
+  `/api/workers/finish` with `status = "cancelled"`; the reference
+  worker (`cronlord worker run`) does this automatically.
 
 ### `POST /api/workers/finish`
 

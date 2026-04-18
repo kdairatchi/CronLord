@@ -12,15 +12,15 @@ module CronLord
     MAX_LOG_BYTES = 512 * 1024 # 512 KiB; server rejects larger bodies quickly
 
     record Result,
-      status : String,    # "success" | "fail" | "timeout"
+      status : String,    # "success" | "fail" | "timeout" | "cancelled"
       exit_code : Int32?,
       error : String?,
       log : String
 
-    def self.run(job : JSON::Any) : Result
+    def self.run(job : JSON::Any, *, cancel_chan : Channel(Nil)? = nil) : Result
       kind = job["kind"]?.try(&.as_s?) || "shell"
       case kind
-      when "shell" then run_shell(job)
+      when "shell" then run_shell(job, cancel_chan)
       when "http"  then run_http(job)
       else              unsupported(kind)
       end
@@ -35,7 +35,7 @@ module CronLord
       )
     end
 
-    private def self.run_shell(job : JSON::Any) : Result
+    private def self.run_shell(job : JSON::Any, cancel_chan : Channel(Nil)?) : Result
       command = job["command"]?.try(&.as_s?) || ""
       timeout = job["timeout_sec"]?.try(&.as_i?) || 0
       chdir = job["working_dir"]?.try(&.as_s?)
@@ -77,24 +77,36 @@ module CronLord
       spawn pipe_into(stdout_r, log, "out", done_out, mutex, bytes)
       spawn pipe_into(stderr_r, log, "err", done_err, mutex, bytes)
 
+      waiter = Channel(Process::Status).new(1)
+      spawn { waiter.send(process.wait) }
+
       status : Process::Status? = nil
       timed_out = false
+      cancelled = false
+      effective_cancel = cancel_chan || Channel(Nil).new   # never-fires fallback
 
       if timeout > 0
-        waiter = Channel(Process::Status).new(1)
-        spawn { waiter.send(process.wait) }
         select
         when st = waiter.receive
           status = st
+        when effective_cancel.receive
+          cancelled = true
+          kill_process(process)
+          status = waiter.receive
         when timeout(timeout.seconds)
           timed_out = true
-          process.signal(Signal::TERM) rescue nil
-          sleep 2.seconds
-          process.signal(Signal::KILL) rescue nil
+          kill_process(process)
           status = waiter.receive
         end
       else
-        status = process.wait
+        select
+        when st = waiter.receive
+          status = st
+        when effective_cancel.receive
+          cancelled = true
+          kill_process(process)
+          status = waiter.receive
+        end
       end
 
       done_out.receive
@@ -102,15 +114,24 @@ module CronLord
 
       st = status.not_nil!
       captured = log.to_s
-      # Signal-exit (our SIGKILL on timeout) has no numeric exit code.
+      # Signal-exit (our SIGKILL on timeout/cancel) has no numeric exit code.
       code = st.normal_exit? ? st.exit_code : nil
-      if timed_out
+      if cancelled
+        Result.new("cancelled", code, "cancelled by operator",
+          captured + "\n[worker] cancelled by operator; killed\n")
+      elsif timed_out
         Result.new("timeout", code, "timeout after #{timeout}s", captured)
       elsif st.success?
         Result.new("success", code, nil, captured)
       else
         Result.new("fail", code, nil, captured)
       end
+    end
+
+    private def self.kill_process(process)
+      process.signal(Signal::TERM) rescue nil
+      sleep 2.seconds
+      process.signal(Signal::KILL) rescue nil
     end
 
     private def self.pipe_into(io : IO, log : String::Builder, stream : String,

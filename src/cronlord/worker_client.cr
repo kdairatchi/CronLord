@@ -11,6 +11,11 @@ module CronLord
     class Error < Exception
     end
 
+    # Raised by `heartbeat` when the scheduler responds with 410 — the run
+    # was cancelled by an operator and the worker should abort execution.
+    class CancelledError < Error
+    end
+
     # Server returned no run — lease endpoint's 204 case. Not an error.
     NO_LEASE = :no_lease
 
@@ -35,6 +40,7 @@ module CronLord
     def heartbeat(run_id : String, lease_sec : Int32) : Int64?
       body = {run_id: run_id, lease_sec: lease_sec}.to_json
       status, payload = post_signed("/api/workers/heartbeat", body)
+      raise CancelledError.new("run #{run_id} cancelled by operator") if status == 410
       raise Error.new("heartbeat: HTTP #{status} #{payload}") unless status == 200
       JSON.parse(payload)["lease_expires_at"]?.try(&.as_i64?)
     end

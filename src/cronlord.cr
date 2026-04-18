@@ -1,5 +1,5 @@
 module CronLord
-  VERSION = "0.3.5"
+  VERSION = "0.3.6"
 end
 
 require "./cronlord/config"
@@ -9,6 +9,7 @@ require "./cronlord/log_buffer"
 require "./cronlord/job"
 require "./cronlord/run"
 require "./cronlord/http_guard"
+require "./cronlord/runner/cancel_registry"
 require "./cronlord/runner/shell"
 require "./cronlord/runner/http"
 require "./cronlord/runner/claude"

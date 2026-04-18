@@ -67,6 +67,12 @@ Open `http://localhost:7070`.
 
 ## Status
 
+v0.3.6 — runs can now be cancelled. `POST /api/runs/:id/cancel` (and a
+Cancel button on the run detail page) flips queued runs straight to
+`cancelled`, signals `SIGTERM → SIGKILL` on locally-executed shell
+runs, and — for worker-leased runs — returns `410 Gone` on the next
+heartbeat so the worker aborts its subprocess and reports
+`cancelled`. Every cancel writes a `run.cancel` audit row.
 v0.3.5 — every pushed GHCR image now carries an attached SPDX SBOM
 and SLSA `mode=max` build provenance attestation via
 `docker/build-push-action`'s native flags. Ships alongside a new
