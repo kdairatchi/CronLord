@@ -12,7 +12,7 @@ jobs:
     container:
       image: crystallang/crystal:1.19.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install libsqlite3 headers
         run: |
