@@ -11,12 +11,12 @@ standard HTTP status codes with an `{"error": "..."}` body.
 
 ### `GET /healthz`
 
-Unauthenticated. Returns `{"status":"ok","version":"0.3.1"}`. Use for
+Unauthenticated. Returns `{"status":"ok","version":"0.3.2"}`. Use for
 liveness probes.
 
 ### `GET /api/version`
 
-Unauthenticated. Returns `{"version":"0.3.1"}`.
+Unauthenticated. Returns `{"version":"0.3.2"}`.
 
 ## Jobs
 

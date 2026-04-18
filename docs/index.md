@@ -66,8 +66,11 @@ Open `http://localhost:7070`.
 
 ## Status
 
-v0.3.1 — v0.3.0 plus outbound-HTTP hardening: Slack/webhook/http-runner
-calls route through `HttpGuard`, the Slack prefix is enforced via an
+v0.3.2 — packaging patch over v0.3.1: `Dockerfile.release` installs the
+`-static`/`-dev` variants of sqlite, openssl, pcre2, zlib, and gc so
+`shards build --static` actually links on Alpine. No runtime changes.
+v0.3.1 added outbound-HTTP hardening: Slack/webhook/http-runner calls
+route through `HttpGuard`, the Slack prefix is enforced via an
 allowlist, and `CRONLORD_BLOCK_PRIVATE_NETS=1` refuses RFC1918,
 loopback, link-local, CGNAT, and multicast targets on resolve.
 v0.3.0 added per-job IANA timezones with DST-correct firing, the

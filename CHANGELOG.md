@@ -3,6 +3,18 @@
 All notable changes to CronLord. Dates are in UTC. This project follows
 semantic versioning.
 
+## [0.3.2] — 2026-04-18
+
+### Fixed
+- **Release workflow.** `Dockerfile.release` now installs the
+  `-static` and `-dev` variants of `sqlite`, `openssl`, `pcre2`, `zlib`,
+  and `gc` on the Alpine build image. Without these, `shards build
+  --static` failed at link time with `cannot find -lsqlite3`, so the
+  v0.3.1 release tarballs were never published.
+
+### Changed
+- `README.md` now shows a banner from `public/img/cronlord-banner.png`.
+
 ## [0.3.1] — 2026-04-18
 
 ### Security
