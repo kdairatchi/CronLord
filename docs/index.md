@@ -64,6 +64,7 @@ Open `http://localhost:7070`.
   log buffer fit together.
 - **[Comparison](comparison.md)** — CronLord vs Cronicle vs crontab-ui vs
   plain cron.
+- **[Contributing](contributing.md)** — setup, hot paths, commit style, house rules.
 
 ## Status
 

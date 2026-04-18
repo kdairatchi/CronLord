@@ -48,7 +48,8 @@ Full docs under [`docs/`](docs/index.md):
 [API](docs/api.md) ·
 [deployment](docs/deployment.md) ·
 [architecture](docs/architecture.md) ·
-[comparison](docs/comparison.md).
+[comparison](docs/comparison.md) ·
+[contributing](docs/contributing.md).
 
 ## License
 
