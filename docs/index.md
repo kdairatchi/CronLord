@@ -67,6 +67,10 @@ Open `http://localhost:7070`.
 
 ## Status
 
+v0.3.4 — the release workflow now keyless-signs every pushed GHCR
+reference with cosign via GitHub OIDC, and the runtime `Dockerfile`
+`COPY`s `public/` into the build stage so the docker publish step
+actually succeeds. No runtime or API changes.
 v0.3.3 — release workflow now publishes a multi-arch image to
 `ghcr.io/kdairatchi/cronlord` (`:latest`, `:<version>`, `:<minor>`).
 The runtime `Dockerfile` gets the same static-libs fix that landed on

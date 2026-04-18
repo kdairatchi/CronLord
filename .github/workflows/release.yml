@@ -82,6 +82,10 @@ jobs:
     name: publish docker image
     needs: build
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # keyless cosign via GitHub OIDC
     steps:
       - uses: actions/checkout@v4
 
@@ -90,6 +94,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -101,8 +108,8 @@ jobs:
       - name: Derive image tags
         id: tags
         run: |
-          ref="${GITHUB_REF#refs/tags/}"           # v0.3.2
-          ver="${ref#v}"                           # 0.3.2
+          ref="${GITHUB_REF#refs/tags/}"           # v0.3.4
+          ver="${ref#v}"                           # 0.3.4
           minor="${ver%.*}"                        # 0.3
           lower_owner="${GITHUB_REPOSITORY_OWNER,,}"
           base="ghcr.io/${lower_owner}/cronlord"
@@ -113,6 +120,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -127,3 +135,18 @@ jobs:
             org.opencontainers.image.version=${{ steps.tags.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.licenses=MIT
+
+      - name: Sign image with cosign (keyless)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAGS: ${{ steps.tags.outputs.tags }}
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          # Sign each tag-qualified reference at its digest so the
+          # signature is pinned to the exact bytes we just pushed.
+          IFS=',' read -ra tag_list <<< "$TAGS"
+          for t in "${tag_list[@]}"; do
+            ref="${t}@${DIGEST}"
+            echo "signing $ref"
+            cosign sign --yes "$ref"
+          done

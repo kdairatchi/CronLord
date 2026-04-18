@@ -33,6 +33,22 @@ docker compose pull && docker compose up -d
 SQLite WAL survives container restarts cleanly. The data volume is the
 only thing you ever need to back up.
 
+### Verify image signatures
+
+Every tagged image is signed with keyless [cosign](https://github.com/sigstore/cosign)
+via GitHub's OIDC provider. Confirm a pull came from this repo's release
+workflow before you run it:
+
+```sh
+cosign verify ghcr.io/kdairatchi/cronlord:latest \
+  --certificate-identity-regexp='https://github.com/kdairatchi/CronLord/\.github/workflows/release\.yml.*' \
+  --certificate-oidc-issuer='https://token.actions.githubusercontent.com'
+```
+
+The command exits 0 on a valid signature chain and prints the signing
+workflow identity on success. Wire it into your pull pipeline if you
+care about supply-chain integrity.
+
 ## systemd (bare metal)
 
 Either use `scripts/install.sh` or drop `contrib/cronlord.service`

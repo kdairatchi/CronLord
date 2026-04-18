@@ -1,5 +1,5 @@
 name: cronlord
-version: 0.3.3
+version: 0.3.4
 
 description: |
   CronLord — a visual, self-hosted cron scheduler in a single Crystal binary.

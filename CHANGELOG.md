@@ -3,6 +3,24 @@
 All notable changes to CronLord. Dates are in UTC. This project follows
 semantic versioning.
 
+## [0.3.4] — 2026-04-18
+
+### Added
+- **Cosign-signed images.** The release workflow now signs every
+  pushed GHCR reference (`:<version>`, `:<minor>`, `:latest`) with
+  keyless cosign via GitHub's OIDC provider. Verify with
+  `cosign verify ghcr.io/kdairatchi/cronlord:0.3.4 \
+  --certificate-identity-regexp='https://github.com/kdairatchi/CronLord/.*' \
+  --certificate-oidc-issuer='https://token.actions.githubusercontent.com'`.
+- **Dependabot for docker.** `.github/dependabot.yml` now also monitors
+  `docker/` (the base image in `Dockerfile`) alongside github-actions.
+
+### Fixed
+- `Dockerfile` now `COPY`s `public/` into the build stage. Without it,
+  the runtime stage's `COPY --from=build /src/public` failed with
+  `"/src/public": not found` and the v0.3.3 docker publish step never
+  pushed an image to GHCR.
+
 ## [0.3.3] — 2026-04-18
 
 ### Added

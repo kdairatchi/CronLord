@@ -24,6 +24,7 @@ RUN shards install --production
 COPY src ./src
 COPY db ./db
 COPY spec ./spec
+COPY public ./public
 
 ## Build a fully static binary so the runtime stage doesn't need libc.
 RUN shards build cronlord --production --release --static --no-debug
