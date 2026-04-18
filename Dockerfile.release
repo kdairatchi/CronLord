@@ -4,6 +4,18 @@
 
 FROM crystallang/crystal:1.19-alpine AS build
 
+# Static link needs the -static archives for every lib crystal-sqlite3
+# and kemal end up dragging in. The base image ships the shared builds
+# only, so add the -static and -dev counterparts here.
+RUN apk add --no-cache \
+      sqlite-static \
+      sqlite-dev \
+      openssl-dev \
+      openssl-libs-static \
+      pcre2-dev \
+      zlib-static \
+      gc-dev
+
 WORKDIR /src
 
 COPY shard.yml shard.lock ./

@@ -1,5 +1,9 @@
 # CronLord
 
+<p align="center">
+  <img src="public/img/cronlord-banner.png" alt="CronLord" width="860">
+</p>
+
 [![ci](https://github.com/kdairatchi/CronLord/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kdairatchi/CronLord/actions/workflows/ci.yml)
 [![release](https://github.com/kdairatchi/CronLord/actions/workflows/release.yml/badge.svg)](https://github.com/kdairatchi/CronLord/actions/workflows/release.yml)
 [![license](https://img.shields.io/github/license/kdairatchi/CronLord)](./LICENSE)
