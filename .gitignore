@@ -18,3 +18,9 @@ cronlord.local.toml
 .vscode/
 .idea/
 *.swp
+
+# agent / local-only (never commit)
+CLAUDE.md
+.claude/
+plans/
+TODO.md
