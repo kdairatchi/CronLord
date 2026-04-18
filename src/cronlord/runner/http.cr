@@ -59,9 +59,10 @@ module CronLord
         status : Int32 = 0
         body : String = ""
 
-        uri = URI.parse(req.url)
-        unless uri.scheme == "http" || uri.scheme == "https"
-          msg = "http job: unsupported scheme '#{uri.scheme}'"
+        uri = begin
+          HttpGuard.validate!(req.url)
+        rescue ex : HttpGuard::Rejected
+          msg = "http job: #{ex.message}"
           buffer.write(msg, :meta)
           run.mark_finished("fail", 2, msg)
           return 2
@@ -69,16 +70,13 @@ module CronLord
 
         started = Time.instant
         begin
-          client = HTTP::Client.new(uri)
-          client.connect_timeout = timeout.seconds
-          client.read_timeout = timeout.seconds
-          client.write_timeout = timeout.seconds
+          client = HttpGuard.safe_client(uri, timeout)
 
           headers = HTTP::Headers.new
           req.headers.each { |k, v| headers[k] = v }
           headers["User-Agent"] = "CronLord/#{VERSION}" unless headers.has_key?("User-Agent")
 
-          response = client.exec(method: req.method, path: request_path(uri),
+          response = client.exec(method: req.method, path: HttpGuard.request_path(uri),
             headers: headers, body: req.body)
 
           status = response.status_code
@@ -107,12 +105,6 @@ module CronLord
         ensure
           buffer.close rescue nil
         end
-      end
-
-      private def self.request_path(uri : URI) : String
-        p = uri.path.empty? ? "/" : uri.path
-        q = uri.query
-        q && !q.empty? ? "#{p}?#{q}" : p
       end
 
       private def self.matches_expected?(actual : Int32, expected : Int32?) : Bool

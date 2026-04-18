@@ -23,19 +23,15 @@ module CronLord
       return unless url && !url.empty?
 
       body = webhook_payload(job, run).to_json
-      spawn post_with_retry(url, body, job.id, "webhook")
+      spawn post_with_retry(url, body, job.id, "webhook", nil)
     end
 
     def self.deliver_slack(job : Job, run : Run) : Nil
       url = job.args["slack_webhook_url"]?.try(&.as_s?)
       return unless url && !url.empty?
-      unless url.starts_with?(SLACK_URL_PREFIX)
-        STDERR.puts "[notifier] refusing non-Slack URL in slack_webhook_url for job=#{job.id}"
-        return
-      end
 
       body = slack_payload(job, run).to_json
-      spawn post_with_retry(url, body, job.id, "slack")
+      spawn post_with_retry(url, body, job.id, "slack", [SLACK_URL_PREFIX])
     end
 
     def self.webhook_payload(job : Job, run : Run)
@@ -104,11 +100,20 @@ module CronLord
       s.size <= limit ? s : "#{s[0, limit]}…"
     end
 
-    private def self.post_with_retry(url : String, body : String, job_id : String, channel : String) : Nil
+    private def self.post_with_retry(url : String, body : String, job_id : String,
+                                     channel : String,
+                                     allowed_prefixes : Array(String)?) : Nil
+      uri = begin
+        HttpGuard.validate!(url, allowed_prefixes: allowed_prefixes)
+      rescue ex : HttpGuard::Rejected
+        STDERR.puts "[notifier] rejecting #{channel} url for job=#{job_id}: #{ex.message}"
+        return
+      end
+
       attempt = 0
       loop do
         attempt += 1
-        if try_post(url, body)
+        if try_post(uri, body)
           return
         end
         break if attempt >= MAX_ATTEMPTS
@@ -117,19 +122,13 @@ module CronLord
       STDERR.puts "[notifier] giving up on #{channel} for job=#{job_id} after #{MAX_ATTEMPTS} attempts"
     end
 
-    private def self.try_post(url : String, body : String) : Bool
-      uri = URI.parse(url)
-      client = HTTP::Client.new(uri)
-      client.connect_timeout = DEFAULT_TIMEOUT.seconds
-      client.read_timeout = DEFAULT_TIMEOUT.seconds
-      client.write_timeout = DEFAULT_TIMEOUT.seconds
+    private def self.try_post(uri : URI, body : String) : Bool
+      client = HttpGuard.safe_client(uri, DEFAULT_TIMEOUT)
       headers = HTTP::Headers{
         "Content-Type" => "application/json",
         "User-Agent"   => "CronLord/#{VERSION} (notifier)",
       }
-      path = uri.path.empty? ? "/" : uri.path
-      path = "#{path}?#{uri.query}" if (q = uri.query) && !q.empty?
-      response = client.post(path, headers: headers, body: body)
+      response = client.post(HttpGuard.request_path(uri), headers: headers, body: body)
       response.status_code >= 200 && response.status_code < 300
     rescue ex
       STDERR.puts "[notifier] attempt failed: #{ex.class}: #{ex.message}"

@@ -66,10 +66,14 @@ Open `http://localhost:7070`.
 
 ## Status
 
-v0.3.0 — v0.2 plus per-job IANA timezones with DST-correct firing,
-Slack webhook channel alongside the generic webhook, and GitHub Actions
-workflows for CI (spec + build) and release (static linux-amd64 /
-linux-arm64 tarballs via Docker Buildx + QEMU).
+v0.3.1 — v0.3.0 plus outbound-HTTP hardening: Slack/webhook/http-runner
+calls route through `HttpGuard`, the Slack prefix is enforced via an
+allowlist, and `CRONLORD_BLOCK_PRIVATE_NETS=1` refuses RFC1918,
+loopback, link-local, CGNAT, and multicast targets on resolve.
+v0.3.0 added per-job IANA timezones with DST-correct firing, the
+Slack webhook channel alongside the generic webhook, and GitHub
+Actions workflows for CI (spec + build) and release (static
+linux-amd64 / linux-arm64 tarballs via Docker Buildx + QEMU).
 
 ## License
 

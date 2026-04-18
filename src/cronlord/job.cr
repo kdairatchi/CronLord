@@ -52,16 +52,17 @@ module CronLord
               "args_json,env_json,working_dir,timeout_sec,max_concurrent,retry_count," \
               "retry_delay_sec,enabled,source,executor,labels_json,created_at,updated_at"
 
+    SELECT_ALL_SQL = "SELECT " + COLUMNS + " FROM jobs"
+    SELECT_BY_ID_SQL = "SELECT " + COLUMNS + " FROM jobs WHERE id = ?"
+
     def self.all(db = DB.conn) : Array(Job)
       out = [] of Job
-      db.query_each("SELECT #{COLUMNS} FROM jobs") { |rs| out << hydrate(rs) }
+      db.query_each(SELECT_ALL_SQL) { |rs| out << hydrate(rs) }
       out
     end
 
     def self.find(id : String, db = DB.conn) : Job?
-      db.query_one?(
-        "SELECT #{COLUMNS} FROM jobs WHERE id = ?", id
-      ) { |rs| hydrate(rs) }
+      db.query_one?(SELECT_BY_ID_SQL, id) { |rs| hydrate(rs) }
     end
 
     UPSERT_SQL = <<-SQL

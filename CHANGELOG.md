@@ -3,6 +3,26 @@
 All notable changes to CronLord. Dates are in UTC. This project follows
 semantic versioning.
 
+## [0.3.1] — 2026-04-18
+
+### Security
+- **Outbound HTTP guard.** All notifier and `http` runner requests now
+  route through `CronLord::HttpGuard` — scheme is restricted to
+  `http`/`https`, the Slack channel enforces the `https://hooks.slack.com/`
+  prefix via a real allowlist, and an opt-in
+  `CRONLORD_BLOCK_PRIVATE_NETS=1` resolves the target host and refuses
+  RFC1918, loopback, link-local (`169.254/16`), CGNAT (`100.64/10`),
+  multicast, and non-global IPv6. Clients are built with explicit
+  `host`/`port`/`tls` keyword args instead of `HTTP::Client.new(uri)`.
+
+### Fixed
+- Job and run SQL selects are hoisted to named constants and the
+  worker-lease query builds its `IN (?,?,…)` clause through a helper
+  so every DB call receives a literal SQL string.
+- `cronlord worker register` no longer interpolates the plaintext
+  secret into a `puts` label line — the value prints on its own line
+  after a shown-once notice.
+
 ## [0.3.0] — 2026-04-17
 
 ### Added

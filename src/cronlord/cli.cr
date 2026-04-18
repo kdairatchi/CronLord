@@ -149,11 +149,12 @@ module CronLord
         OptionParser.parse(argv[2..]) do |op|
           op.on("--label=L", "add a label (repeatable)") { |v| labels << v }
         end
-        worker, secret = Worker.register(name, labels: labels)
+        worker, plaintext = Worker.register(name, labels: labels)
         puts "id:     #{worker.id}"
         puts "name:   #{worker.name}"
-        puts "secret: #{secret}"
-        STDERR.puts "note: the secret above is shown ONCE — store it on the worker host now."
+        puts "secret (shown once — copy it now):"
+        puts plaintext
+        STDERR.puts "note: the value above is not recoverable — store it on the worker host now."
         0
       when "list"
         Worker.all.each do |w|

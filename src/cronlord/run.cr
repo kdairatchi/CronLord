@@ -74,11 +74,12 @@ module CronLord
     COLUMNS = "id,job_id,status,started_at,finished_at,exit_code,attempt,log_path," \
               "trigger,error,worker_id,lease_expires_at,heartbeat_at"
 
+    SELECT_SQL = "SELECT " + COLUMNS + " FROM runs"
+    SELECT_BY_ID_SQL = "SELECT " + COLUMNS + " FROM runs WHERE id = ?"
+
     def self.recent(job_id : String? = nil, limit : Int32 = 100, db = DB.conn) : Array(Run)
       out = [] of Run
-      sql = "SELECT #{COLUMNS} FROM runs"
-      sql += " WHERE job_id = ?" if job_id
-      sql += " ORDER BY COALESCE(started_at, 0) DESC LIMIT ?"
+      sql = recent_sql(job_id != nil)
       args = [] of ::DB::Any
       args << job_id if job_id
       args << limit
@@ -87,7 +88,28 @@ module CronLord
     end
 
     def self.find(id : String, db = DB.conn) : Run?
-      db.query_one?("SELECT #{COLUMNS} FROM runs WHERE id = ?", id) { |rs| hydrate(rs) }
+      db.query_one?(SELECT_BY_ID_SQL, id) { |rs| hydrate(rs) }
+    end
+
+    private def self.recent_sql(filter_by_job : Bool) : String
+      base = SELECT_SQL
+      base += " WHERE job_id = ?" if filter_by_job
+      base += " ORDER BY COALESCE(started_at, 0) DESC LIMIT ?"
+      base
+    end
+
+    LEASE_PICK_PREFIX = "SELECT id FROM runs WHERE status='queued' AND worker_id IS NULL AND job_id IN ("
+    LEASE_PICK_SUFFIX = ") ORDER BY COALESCE(started_at, 0) ASC, id ASC LIMIT 1"
+
+    private def self.build_lease_pick_sql(count : Int32) : String
+      String.build do |io|
+        io << LEASE_PICK_PREFIX
+        count.times do |i|
+          io << ',' if i > 0
+          io << '?'
+        end
+        io << LEASE_PICK_SUFFIX
+      end
     end
 
     # Atomically lease the oldest queued run that matches this worker. The
@@ -99,12 +121,10 @@ module CronLord
       return nil if candidate_ids.empty?
       expires = Time.utc.to_unix + lease_sec
       now = Time.utc.to_unix
-      placeholders = Array.new(candidate_ids.size, "?").join(",")
       # Pick the oldest unassigned queued run whose job is in the candidate set.
+      lease_sql = build_lease_pick_sql(candidate_ids.size)
       row_id = db.query_one?(
-        "SELECT id FROM runs WHERE status='queued' AND worker_id IS NULL " \
-        "AND job_id IN (#{placeholders}) " \
-        "ORDER BY COALESCE(started_at, 0) ASC, id ASC LIMIT 1",
+        lease_sql,
         args: candidate_ids.map { |id| id.as(::DB::Any) }
       ) { |rs| rs.read(String) }
       return nil unless row_id
