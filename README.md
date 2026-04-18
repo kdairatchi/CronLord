@@ -53,6 +53,10 @@ Full docs under [`docs/`](docs/index.md):
 [comparison](docs/comparison.md) |
 [contributing](docs/contributing.md).
 
+## Security
+
+Report suspected vulnerabilities privately — see [SECURITY.md](SECURITY.md).
+
 ## License
 
 MIT
