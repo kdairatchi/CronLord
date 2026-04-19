@@ -26,6 +26,28 @@ shards build --release
 
 Open <http://localhost:7070>.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/01-dashboard.png" alt="Overview" width="720">
+  <br><em>Overview — queued, running, recent runs, failure rate at a glance.</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/02-jobs-list.png" alt="Jobs" width="720">
+  <br><em>Jobs — schedule, next fire in local TZ, kind, enabled state.</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/03-job-detail.png" alt="Edit job" width="720">
+  <br><em>Edit — cron, timezone, kind (shell / http / claude), working dir, env.</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/06-run-log.png" alt="Run log" width="720">
+  <br><em>Run log — live SSE tail of stdout/stderr with meta markers.</em>
+</p>
+
 ## What you get
 
 - Tickless cron scheduler with macro expressions (`@hourly`, `@daily`)
