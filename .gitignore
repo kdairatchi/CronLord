@@ -19,6 +19,13 @@ cronlord.local.toml
 .idea/
 *.swp
 
+# Jekyll / GitHub Pages build artifacts (docs/ hosts the site)
+/_site/
+/docs/_site/
+/docs/.jekyll-cache/
+/docs/.jekyll-metadata
+/docs/Gemfile.lock
+
 # agent / local-only (never commit)
 CLAUDE.md
 .claude/

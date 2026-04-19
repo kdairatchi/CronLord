@@ -1,3 +1,8 @@
+---
+title: Getting Started
+nav_order: 2
+---
+
 # Getting Started
 
 Three install paths: Docker, the `install.sh` one-liner for systemd hosts,

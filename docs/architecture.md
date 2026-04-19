@@ -1,3 +1,8 @@
+---
+title: Architecture
+nav_order: 8
+---
+
 # Architecture
 
 CronLord is roughly 3 000 lines of Crystal split across a scheduler, a set

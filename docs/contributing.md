@@ -1,3 +1,8 @@
+---
+title: Contributing
+nav_order: 10
+---
+
 # Contributing to CronLord
 
 Bug reports, specs, doc fixes, and small focused features are welcome.

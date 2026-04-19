@@ -1,3 +1,11 @@
+---
+title: Home
+layout: home
+nav_order: 1
+description: "CronLord — a visual, self-hosted cron scheduler in a single Crystal binary."
+permalink: /
+---
+
 # CronLord
 
 A visual, self-hosted cron scheduler in a single Crystal binary.

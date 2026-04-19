@@ -1,3 +1,8 @@
+---
+title: Deployment
+nav_order: 6
+---
+
 # Deployment
 
 CronLord wants to be boring to run: one binary, one SQLite file, one

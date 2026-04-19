@@ -1,3 +1,8 @@
+---
+title: Comparison
+nav_order: 9
+---
+
 # Comparison
 
 CronLord isn't the only way to run cron-with-a-UI. Here's an honest

@@ -66,7 +66,8 @@ Open <http://localhost:7070>.
 
 ## Documentation
 
-Full docs under [`docs/`](docs/index.md):
+Browse at **<https://kdairatchi.github.io/CronLord>** (just-the-docs),
+or read in-tree under [`docs/`](docs/index.md):
 [getting started](docs/getting-started.md) |
 [CLI](docs/cli.md) |
 [job kinds](docs/job-kinds.md) |
@@ -76,6 +77,11 @@ Full docs under [`docs/`](docs/index.md):
 [architecture](docs/architecture.md) |
 [comparison](docs/comparison.md) |
 [contributing](docs/contributing.md).
+
+Stuck? Run `cronlord doctor` first — it surfaces the 12 most common
+failure modes (DB integrity, pending migrations, stuck runs, worker
+heartbeats, tzdata, admin token posture, …) with fixes linked from
+[troubleshooting](docs/troubleshooting.md).
 
 ## Security
 

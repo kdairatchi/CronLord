@@ -1,3 +1,8 @@
+---
+title: Job Kinds
+nav_order: 4
+---
+
 # Job Kinds
 
 CronLord ships three job kinds: `shell`, `http`, and `claude`. Each

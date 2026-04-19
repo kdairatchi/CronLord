@@ -1,3 +1,8 @@
+---
+title: API
+nav_order: 5
+---
+
 # API Reference
 
 All endpoints under `/api/*` speak JSON. When `admin_token` is configured,
