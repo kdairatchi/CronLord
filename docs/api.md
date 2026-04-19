@@ -328,7 +328,7 @@ Each row has `at`, `actor`, `action`, `target`, and free-form `meta_json`.
 
 ## Rate limits
 
-v0.1 has no built-in rate limiter. If you expose the API to the
+CronLord has no built-in rate limiter. If you expose the API to the
 internet, put it behind nginx / Caddy / Cloudflare and rate-limit
 there. The scheduler itself is unaffected by API load - heavy polling
 just adds SQLite read traffic.

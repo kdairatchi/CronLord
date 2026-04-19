@@ -19,8 +19,8 @@ Other schedulers either hide behind a Node stack you have to babysit
   up with `cp`. No external database required.
 - **Editorial UI.** Warm paper neutrals, no neon, no chrome. Designed so
   an on-call engineer at 3 a.m. can read it.
-- **Three job kinds.** `shell`, `http`, and `claude` (prompt -> `claude -p`)
-  ship in v0.1. Add your own runner with ~100 lines of Crystal.
+- **Three job kinds.** `shell`, `http`, and `claude` (prompt -> `claude -p`).
+  Add your own runner with ~100 lines of Crystal.
 - **Remote workers.** Register a worker from `/workers/new`, run
   `cronlord worker run` on another host, and jobs with
   `executor = worker` are leased out over HMAC-signed HTTP. Crashed
@@ -56,10 +56,13 @@ Open `http://localhost:7070`.
 
 - **[Getting Started](getting-started.md)** - install paths, first job,
   webhook wiring.
+- **[CLI Reference](cli.md)** - every subcommand, flag, and env var.
 - **[Job Kinds](job-kinds.md)** - `shell`, `http`, `claude` in detail.
 - **[API](api.md)** - full JSON API + HMAC worker protocol reference.
 - **[Deployment](deployment.md)** - Docker, systemd, reverse proxies,
   hardening.
+- **[Troubleshooting](troubleshooting.md)** - real failure modes and
+  their fixes.
 - **[Architecture](architecture.md)** - how the scheduler, runners, and
   log buffer fit together.
 - **[Comparison](comparison.md)** - CronLord vs Cronicle vs crontab-ui vs

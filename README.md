@@ -68,9 +68,11 @@ Open <http://localhost:7070>.
 
 Full docs under [`docs/`](docs/index.md):
 [getting started](docs/getting-started.md) |
+[CLI](docs/cli.md) |
 [job kinds](docs/job-kinds.md) |
 [API](docs/api.md) |
 [deployment](docs/deployment.md) |
+[troubleshooting](docs/troubleshooting.md) |
 [architecture](docs/architecture.md) |
 [comparison](docs/comparison.md) |
 [contributing](docs/contributing.md).

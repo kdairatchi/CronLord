@@ -93,8 +93,8 @@ admin_token = "replace-me-with-a-long-random-string"
 ```
 
 Every request to `/api/*` then needs either an `Authorization: Bearer <token>`
-header or a `?token=` query parameter. The web UI is not token-gated in
-v0.1 - bind to `127.0.0.1` and front with a reverse proxy that handles
+header or a `?token=` query parameter. The web UI is not token-gated
+today - bind to `127.0.0.1` and front with a reverse proxy that handles
 your existing auth (nginx basic auth, Cloudflare Access, Tailscale
 Serve, etc.).
 

@@ -103,7 +103,7 @@ main).
 
 ## When not to use CronLord
 
-- You need multi-region active/active today. (v0.1 is single-node.)
+- You need multi-region active/active today. (The scheduler is single-node; workers scale horizontally.)
 - You need DAG semantics. Use an orchestrator.
 - You can't run a custom binary. Use GHA / Cronicle-in-Docker / cron.
 - Your environment already has Cronicle/Airflow and your pain isn't

@@ -113,7 +113,7 @@ add a `select` option in the job editor, document it.
 - Two fibers pump stdout and stderr into the file line-by-line.
 - The HTTP server reads the file directly for SSE streaming - no
   in-memory fan-out. This keeps the scheduler simple; the downside is
-  that tail-follow on a live run isn't implemented in v0.1 (the SSE
+  that tail-follow on a live run is not yet implemented (the SSE
   stream sends the current file contents then an `end` event).
 
 ## Storage
@@ -137,7 +137,7 @@ don't split them, and splits on top-level semicolons.
 - `audit` - append-only; `at`, `actor`, `action`, `target`, `meta_json`.
 - `workers` - registered remote workers (`id`, `name`, `secret_hash`,
   `labels_json`, `last_seen`).
-- `tokens` - API tokens (stub in v0.1; admin token is env/toml for now).
+- `tokens` - API tokens (schema stub; the admin token is still env/toml).
 - `schema_migrations` - version tracking.
 
 ## HTTP server
@@ -174,7 +174,7 @@ and never raise back into the scheduler.
 
 ## Security surfaces
 
-- **API:** bearer token (env or TOML). No per-user accounts in v0.1.
+- **API:** bearer token (env or TOML). No per-user accounts yet.
 - **UI:** not authenticated in-process. Reverse-proxy it.
 - **Workers:** HMAC-SHA256 with a 60-second skew window. Secrets are
   stored as SHA-256 hashes; the plaintext is returned once at register.
@@ -211,11 +211,12 @@ Cons (honest):
 - No database abstraction. Crystal DB shards talks SQLite directly.
 - No config reload. Edit the TOML and restart; startup is <1 s.
 
-## What's deliberately missing in v0.1
+## What's deliberately missing today
 
 - Distributed scheduler (one leader, horizontal workers are supported
   via the lease protocol, but there's still only one scheduler
   process).
 - Per-user accounts.
-- Time-zone support beyond UTC.
 - Built-in TLS. Reverse-proxy it.
+- Tail-follow on live run logs (the SSE stream delivers the current
+  file then an `end` event; Kemal -> SSE tail is on the roadmap).

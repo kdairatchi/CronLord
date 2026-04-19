@@ -23,7 +23,12 @@ module CronLord
     end
 
     # Loop forever, sweeping old log files once per day.
+    # ttl_days <= 0 disables auto-rotation.
     def run_log_reaper(config : Config, ttl_days : Int32 = DEFAULT_LOG_TTL_DAYS) : Nil
+      if ttl_days <= 0
+        STDERR.puts "[reaper] log auto-rotation disabled (CRONLORD_LOG_TTL_DAYS=#{ttl_days})"
+        return
+      end
       cutoff_seconds = ttl_days.to_i64 * 86_400
       loop do
         begin

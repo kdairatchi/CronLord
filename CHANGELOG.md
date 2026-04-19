@@ -3,6 +3,35 @@
 All notable changes to CronLord. Dates are in UTC. This project follows
 semantic versioning.
 
+## [Unreleased]
+
+### Added
+- **`cronlord --version` / `-V`** prints the binary version and exits,
+  matching what most CLIs do and what the GitHub release workflow
+  already assumes.
+- **`CRONLORD_LOG_TTL_DAYS`** environment override for run-log retention.
+  Defaults to 30 as before; `0` disables auto-rotation for operators who
+  manage log cleanup externally.
+- **CLI reference (`docs/cli.md`)** - every subcommand, flag, and env
+  var catalogued in one page so you can script against it confidently.
+- **Troubleshooting guide (`docs/troubleshooting.md`)** - real failure
+  modes (stuck runs, SSE blank, Slack URL rejected, DB locked, Claude
+  CLI missing) and the fastest path to a fix.
+- Expanded `cronlord --help` lists the full env surface, including
+  the two private-net guard and Claude CLI override that were already
+  wired but not advertised.
+
+### Fixed
+- `cli.cr` worker-run name resolution: `ENV[...]? || System.hostname
+  rescue "worker"` was parsed as one expression; now `ENV[...]? ||
+  (System.hostname rescue "worker")` so the rescue only catches the
+  hostname call.
+- Docs: refreshed 13 stale `v0.1` markers. Timezones and remote
+  workers have shipped (v0.3.x); the docs no longer claim otherwise.
+- Removed three empty stub directories (`src/cronlord/db`,
+  `src/cronlord/http`, `src/cronlord/scheduler`) left over from an
+  earlier module split.
+
 ## [0.3.6] - 2026-04-18
 
 ### Added

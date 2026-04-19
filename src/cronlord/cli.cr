@@ -21,9 +21,22 @@ module CronLord
       options:
         -c, --config PATH          path to cronlord.toml (default: ./cronlord.toml)
         -h, --help                 show this help
+        -V, --version              print version and exit
 
       env:
-        CRONLORD_HOST, CRONLORD_PORT, CRONLORD_DATA, CRONLORD_ADMIN_TOKEN
+        CRONLORD_HOST              listen host (default 127.0.0.1)
+        CRONLORD_PORT              listen port (default 7070)
+        CRONLORD_DATA              data directory (default ./var)
+        CRONLORD_DB                sqlite db path (default $DATA/cronlord.db)
+        CRONLORD_LOG_DIR           run log dir (default $DATA/logs)
+        CRONLORD_ADMIN_TOKEN       bearer token for /api/*
+        CRONLORD_LOG_TTL_DAYS      run log retention, 0=disable (default 30)
+        CRONLORD_BLOCK_PRIVATE_NETS  1 = refuse RFC1918 / loopback targets
+        CRONLORD_CLAUDE_CLI        override claude CLI name/path
+
+      worker run env (no DB needed):
+        CRONLORD_URL, CRONLORD_WORKER_ID, CRONLORD_HMAC_KEY,
+        CRONLORD_WORKER_NAME, CRONLORD_LEASE_SEC, CRONLORD_POLL_SEC
       U
 
     def self.dispatch(argv : Array(String)) : Int32
@@ -39,6 +52,8 @@ module CronLord
         case arg
         when "-h", "--help"
           puts USAGE; return 0
+        when "-V", "--version"
+          puts CronLord::VERSION; return 0
         when "-c", "--config"
           config_path = argv[i + 1]? || (STDERR.puts("--config requires a value"); return 2)
           i += 2
@@ -89,7 +104,7 @@ module CronLord
       url = ENV["CRONLORD_URL"]? || ""
       id = ENV["CRONLORD_WORKER_ID"]? || ""
       key = ENV["CRONLORD_HMAC_KEY"]? || ""
-      name = ENV["CRONLORD_WORKER_NAME"]? || System.hostname rescue "worker"
+      name = ENV["CRONLORD_WORKER_NAME"]? || (System.hostname rescue "worker")
       lease_sec = (ENV["CRONLORD_LEASE_SEC"]?.try(&.to_i32?)) || 60
       poll_sec = (ENV["CRONLORD_POLL_SEC"]?.try(&.to_i32?)) || 5
 
@@ -121,7 +136,8 @@ module CronLord
 
       scheduler = Scheduler.new(cfg)
       spawn { scheduler.run }
-      spawn { Reaper.run_log_reaper(cfg) }
+      ttl = ENV["CRONLORD_LOG_TTL_DAYS"]?.try(&.to_i32?) || Reaper::DEFAULT_LOG_TTL_DAYS
+      spawn { Reaper.run_log_reaper(cfg, ttl_days: ttl) }
       spawn { Reaper.run_lease_reaper }
 
       Signal::INT.trap do

@@ -228,8 +228,9 @@ tick). Another worker picks it up on the next poll.
 
 ## High availability
 
-v0.1 is single-node. Two schedulers against one SQLite file will corrupt
-each other - don't do it. If you need HA today, do active/passive with
+The scheduler is single-node today (workers scale out, the scheduler
+does not). Two schedulers against one SQLite file will corrupt each
+other - don't do it. If you need HA today, do active/passive with
 shared storage (NFS/EBS) and a watchdog that fails over on health check
 miss.
 
@@ -254,8 +255,10 @@ due. Idle CPU is zero.
 - `stderr` from the scheduler -> journalctl/docker logs.
 - Per-run job output -> `logs/<run_id>.log` in the data dir.
 
-Run logs are not auto-rotated in v0.1. Add a daily `find logs/ -mtime
-+30 -delete` in another cron job if disk usage matters.
+The reaper purges run logs older than 30 days on a daily tick. Override
+with `CRONLORD_LOG_TTL_DAYS` - set to `7` for aggressive trimming, or
+`0` to disable auto-rotation. Very large logs still count against your
+data volume during the retention window - size accordingly.
 
 ## Troubleshooting
 

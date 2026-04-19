@@ -1,8 +1,10 @@
 # Job Kinds
 
-CronLord v0.1 ships three job kinds: `shell`, `http`, and `claude`. Each
-runs in the scheduler's process (no remote workers needed in v0.1) and
-writes its output to a per-run log file streamed back over SSE.
+CronLord ships three job kinds: `shell`, `http`, and `claude`. Each
+runs either in the scheduler's process or on a leased remote worker
+(`executor = "worker"`), and writes its output to a per-run log file
+streamed back over SSE. `claude` is intentionally scheduler-only - see
+[deployment: supported worker kinds](deployment.md#supported-job-kinds-on-workers).
 
 ## shell
 
