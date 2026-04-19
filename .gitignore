@@ -25,6 +25,8 @@ cronlord.local.toml
 /docs/.jekyll-cache/
 /docs/.jekyll-metadata
 /docs/Gemfile.lock
+/docs/.bundle/
+/docs/vendor/
 
 # agent / local-only (never commit)
 CLAUDE.md

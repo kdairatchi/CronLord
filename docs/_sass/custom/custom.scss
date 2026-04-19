@@ -1,0 +1,187 @@
+// CronLord docs polish. Typographic rhythm + component color touch-ups
+// on top of the sage palette. Kept intentionally small — every rule
+// below exists because the theme default looked generic on cream.
+
+// ---- typography ----
+
+$serif-display: "Fraunces", "IBM Plex Serif", "Iowan Old Style",
+                "Apple Garamond", "Baskerville", Georgia, serif;
+$sans-body:     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                Roboto, "Helvetica Neue", Arial, sans-serif;
+$mono:          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+                Consolas, "Liberation Mono", monospace;
+
+body {
+  font-family: $sans-body;
+  font-feature-settings: "ss01", "cv11", "cv02";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6,
+.site-title {
+  font-family: $serif-display;
+  font-feature-settings: "ss01", "ss02";
+  letter-spacing: -0.01em;
+  font-weight: 500;
+}
+
+.site-title {
+  font-size: 1.35rem;
+  color: #2a2722 !important;
+  padding-top: 1.1rem;
+  padding-bottom: 0.9rem;
+  position: relative;
+
+  &::before {
+    // subtle sage mark left of the title — a small "tick" dot
+    content: "";
+    display: inline-block;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-right: 0.55rem;
+    border-radius: 50%;
+    background: #7a8b6f;
+    transform: translateY(-0.15em);
+  }
+}
+
+h1 { font-size: 2.1rem; }
+h2 { font-size: 1.5rem; margin-top: 2.4rem; }
+h3 { font-size: 1.2rem; margin-top: 1.8rem; }
+
+.site-header {
+  border-bottom: 1px solid #e0d6c2;
+}
+
+.site-nav,
+.side-bar {
+  background: #f5efe2;
+  border-right: 1px solid #e0d6c2;
+}
+
+code, kbd, pre, samp {
+  font-family: $mono;
+  font-feature-settings: "calt" 0;
+}
+
+// Inline code sits on a warmer cream chip with a thin border so it
+// reads as a token, not as shouting.
+p code, li code, td code, h1 code, h2 code, h3 code {
+  background: #f4ecd8;
+  border: 1px solid #e7dcc0;
+  padding: 0.08em 0.38em;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
+// Code blocks get a softer left-rail bar and a touch more padding so
+// they feel like a "printed listing" instead of a framed rectangle.
+div.highlighter-rouge, figure.highlight {
+  border: 1px solid #e7dcc0;
+  border-left: 3px solid #7a8b6f;
+  border-radius: 6px;
+  background: #fbf5e5;
+  padding: 0.35rem 0.1rem;
+}
+
+// Tables: thin cream rules, sage header underline, zero chrome.
+table {
+  border-collapse: collapse;
+  border: none;
+
+  th {
+    font-family: $serif-display;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    border-bottom: 2px solid #7a8b6f;
+    background: transparent;
+  }
+  td {
+    border: none;
+    border-bottom: 1px solid #eee6d1;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+// Primary buttons and inline nav accents pick up the sage.
+.btn-primary, .btn-outline {
+  background: #7a8b6f;
+  color: #faf7f0;
+  border: 1px solid #6a7b5f;
+
+  &:hover, &:focus {
+    background: #6a7b5f;
+    color: #faf7f0;
+  }
+}
+
+// Active sidebar item: a clean sage pill, not a chrome highlight.
+.nav-list .nav-list-item .nav-list-link.active {
+  background: #e8e3d2;
+  color: #2a2722;
+  border-left: 3px solid #7a8b6f;
+  padding-left: calc(1rem - 3px);
+  font-weight: 500;
+}
+
+.nav-list .nav-list-item .nav-list-link:hover {
+  background: #efe9db;
+}
+
+// Callouts: flatten to a left-rail with a tinted background. Matches
+// the aesthetic of the code blocks so the page has one visual grammar.
+.opaque, blockquote, .highlight, .code-example, .note, .warning, .danger, .tip {
+  border-radius: 6px;
+}
+
+blockquote {
+  border-left: 3px solid #b9a97d;
+  background: #f6efdb;
+  padding: 0.6rem 1rem;
+  margin-left: 0;
+  color: #514a3f;
+  font-style: normal;
+}
+
+// Footer
+.site-footer {
+  border-top: 1px solid #e0d6c2;
+  color: #6b6459;
+  font-size: 0.85rem;
+}
+
+// A subtle dotted separator for horizontal rules, instead of the harsh
+// 1px grey line the default emits.
+hr {
+  border: none;
+  border-top: 1px dashed #cfc4ac;
+  margin: 2rem 0;
+}
+
+// Search box sits flush inside the sage sidebar.
+.search-input-wrap {
+  background: #ffffff;
+  border: 1px solid #e0d6c2;
+  border-radius: 6px;
+}
+
+// Links: no underline by default, sage underline on hover. Visited
+// links hold the same color — docs aren't a web you browse back through.
+a {
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 120ms ease;
+
+  &:hover {
+    border-bottom-color: currentColor;
+  }
+}
+
+// 404 dino: keep the layout from stretching on narrow screens.
+.dino-wrap {
+  overflow-x: auto;
+}

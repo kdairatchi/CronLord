@@ -7,7 +7,7 @@ baseurl: /CronLord
 repository: kdairatchi/CronLord
 
 remote_theme: just-the-docs/just-the-docs
-color_scheme: light
+color_scheme: sage
 
 search_enabled: true
 search:
@@ -64,6 +64,7 @@ callouts:
 plugins:
   - jekyll-remote-theme
   - jekyll-seo-tag
+  - jekyll-include-cache
 
 exclude:
   - screenshots/*.xcf

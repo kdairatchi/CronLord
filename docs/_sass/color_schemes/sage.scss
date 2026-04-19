@@ -1,0 +1,36 @@
+// "sage" — pastel editorial palette. Warm paper background, muted sage
+// accents, soft tan borders. Matches the CronLord UI's paper-neutral
+// vibe (same palette as the run log and dashboard).
+//
+// just-the-docs loads color_schemes/light first and then this file on
+// top of it, so we only need to override the tokens we want to change.
+// Do not rename these SCSS variables — the theme looks them up by
+// exact name.
+
+// ---- paper / canvas ----
+$body-background-color:       #faf7f0;  // warm cream
+$sidebar-color:               #f2ede2;  // a shade deeper than canvas
+$search-background-color:     #ffffff;
+$table-background-color:      #ffffff;
+$feedback-color:              darken($sidebar-color, 2%);
+
+// ---- ink ----
+$body-text-color:             #3a362f;  // warm charcoal
+$body-heading-color:          #2a2722;
+$nav-child-link-color:        #4a4640;
+$link-color:                  #5e7a52;  // deeper sage, legible on cream
+$btn-primary-color:           $link-color;
+$base-button-color:           $body-background-color;
+
+// ---- lines / chrome ----
+$border-color:                #e0d6c2;
+$search-result-preview-color: #6b6459;
+
+// ---- code ----
+$code-background-color:       #f4ecd8;
+$code-linenumber-color:       #9c9281;
+
+// A slightly richer sage for block-style callouts and active nav.
+// just-the-docs exposes these as utility variables the theme derives
+// shades from; keeping both in the same hue keeps the page calm.
+$link-color-visited:          darken($link-color, 8%);
