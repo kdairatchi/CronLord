@@ -35,6 +35,9 @@ jobs:
       - name: shards install
         run: shards install
 
+      - name: crystal tool format (check only)
+        run: crystal tool format --check src spec
+
       - name: crystal spec
         run: crystal spec --order=random --error-on-warnings
 
