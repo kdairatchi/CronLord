@@ -167,10 +167,10 @@ module CronLord
         end
         job = Job.find(run.job_id)
         {
-          "run_id"            => run.id,
-          "job"               => job,
-          "lease_expires_at"  => run.lease_expires_at,
-          "heartbeat_every"   => lease_sec // 2,
+          "run_id"           => run.id,
+          "job"              => job,
+          "lease_expires_at" => run.lease_expires_at,
+          "heartbeat_every"  => lease_sec // 2,
         }.to_json
       end
 
@@ -620,21 +620,21 @@ module CronLord
       job.source = h["source"]?.try(&.as_s?) || "api"
       job.executor = h["executor"]?.try(&.as_s?) || "local"
       if labels_any = h["labels"]?
-        job.labels = labels_any.as_a.compact_map { |v| v.as_s? }
+        job.labels = labels_any.as_a.compact_map(&.as_s?)
       end
       job.retry_count = h["retry_count"]?.try(&.as_i?) || 0
       job.retry_delay_sec = h["retry_delay_sec"]?.try(&.as_i?) || 30
       job.working_dir = h["working_dir"]?.try(&.as_s?)
+      # args passthrough first so top-level explicit fields below win
+      # over any nested args.webhook_url / args.slack_webhook_url.
+      if args_hash = h["args"]?.try(&.as_h?)
+        args_hash.each { |k, v| job.args[k] = v }
+      end
       if webhook = h["webhook_url"]?.try(&.as_s?)
         job.args["webhook_url"] = JSON::Any.new(webhook) unless webhook.empty?
       end
       if slack = h["slack_webhook_url"]?.try(&.as_s?)
         job.args["slack_webhook_url"] = JSON::Any.new(slack) unless slack.empty?
-      end
-      if args_any = h["args"]?
-        if args_hash = args_any.as_h?
-          args_hash.each { |k, v| job.args[k] = v }
-        end
       end
       job
     end
@@ -757,11 +757,11 @@ module CronLord
         if Run.mark_cancelling!(run.id)
           delivered = Runner::CancelRegistry.signal(run.id)
           Audit.write("run.cancel", actor: "api", target: "run:#{run.id}",
-            meta: {"from" => JSON::Any.new("running"),
+            meta: {"from"  => JSON::Any.new("running"),
                    "local" => JSON::Any.new(delivered)})
           {202, {
             "status" => JSON::Any.new("cancelling"),
-            "phase" => JSON::Any.new(delivered ? "local_signalled" : "awaiting_worker"),
+            "phase"  => JSON::Any.new(delivered ? "local_signalled" : "awaiting_worker"),
           }}
         else
           {409, {"error" => JSON::Any.new("state_changed")}}
@@ -769,7 +769,7 @@ module CronLord
       when "cancelling"
         {202, {"status" => JSON::Any.new("cancelling"), "phase" => JSON::Any.new("already_pending")}}
       else
-        {409, {"error" => JSON::Any.new("terminal"),
+        {409, {"error"  => JSON::Any.new("terminal"),
                "status" => JSON::Any.new(run.status)}}
       end
     end

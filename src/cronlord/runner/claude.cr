@@ -23,11 +23,7 @@ module CronLord
           args << "--bare"
         end
         if extra = job.args["extra_args"]?.try(&.as_a?)
-          extra.each do |v|
-            if s = v.as_s?
-              args << s
-            end
-          end
+          args.concat(extra.compact_map(&.as_s?))
         end
 
         buffer.write("$ #{cli} #{args.join(" ").sub(prompt, "<prompt>")} (#{prompt.size} chars)", :meta)
