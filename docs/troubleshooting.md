@@ -1,9 +1,31 @@
+---
+title: Troubleshooting
+nav_order: 7
+---
+
 # Troubleshooting
 
 Real failure modes we (or other operators) have hit, and the fastest
 path to a fix. If you run into something not listed here, open an
 issue with the exact command, the scheduler stderr, and the affected
 run id.
+
+## Start here: `cronlord doctor`
+
+Before reading further, run:
+
+```sh
+./cronlord doctor
+```
+
+It probes binary, config, data dir, DB integrity, pending migrations,
+log dir size vs retention, stuck runs, worker heartbeats, tzdata,
+admin token posture, private-net guard, and the Claude CLI in under a
+second. Every item it flags has a fix in this file. Exit codes:
+`0 = healthy`, `1 = warnings only`, `2 = at least one failure` — so
+`cronlord doctor || exit 1` drops straight into a healthcheck.
+
+For structured output (monitoring pipelines), use `cronlord doctor --json`.
 
 ## Installation and startup
 

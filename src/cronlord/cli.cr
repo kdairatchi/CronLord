@@ -8,6 +8,7 @@ module CronLord
       commands:
         serve | server             run the scheduler + HTTP API
         migrate                    apply pending SQL migrations
+        doctor [--json]            run self-checks and exit 0/1/2
         job list                   list all jobs
         job add --schedule S --command C [--name N] [--id I]
         job rm <id>                delete a job
@@ -90,6 +91,7 @@ module CronLord
       case rest.first
       when "serve", "server" then cmd_serve(cfg)
       when "migrate"         then cmd_migrate(cfg)
+      when "doctor"          then cmd_doctor(cfg, rest[1..])
       when "job"             then cmd_job(cfg, rest[1..])
       when "runs"            then cmd_runs(rest[1..])
       when "worker"          then cmd_worker(rest[1..])
@@ -98,6 +100,14 @@ module CronLord
         puts USAGE
         1
       end
+    end
+
+    private def self.cmd_doctor(cfg : Config, argv : Array(String)) : Int32
+      format = :text
+      OptionParser.parse(argv) do |op|
+        op.on("--json", "emit JSON instead of text") { format = :json }
+      end
+      Doctor.run(cfg, format: format)
     end
 
     private def self.cmd_worker_run(argv : Array(String)) : Int32

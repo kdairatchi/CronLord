@@ -1,3 +1,8 @@
+---
+title: CLI Reference
+nav_order: 3
+---
+
 # CLI Reference
 
 The `cronlord` binary is the whole product. This page catalogues every
@@ -62,6 +67,46 @@ migrations automatically on boot, so this is for manual maintenance
 ./cronlord migrate
 # => ok
 ```
+
+## `cronlord doctor [--json]`
+
+Probes the install in under a second and reports what's wrong. Pair
+with [`docs/troubleshooting.md`](troubleshooting.md) — anything doctor
+flags has a fix in that guide.
+
+```sh
+./cronlord doctor
+# [ ok ]  binary      cronlord 0.3.6 (crystal 1.19.1)
+# [ ok ]  db          var/cronlord.db integrity_check=ok journal_mode=wal
+# [warn]  admin_token unset - OK while bound to 127.0.0.1, required before exposing publicly
+# ...
+# summary: 11 ok, 1 warn, 0 fail
+```
+
+Checks covered:
+
+| Check | What it verifies |
+| --- | --- |
+| `binary` | Version + Crystal runtime |
+| `config` | `cronlord.toml` present or defaults in use |
+| `data_dir` | Exists and is writable |
+| `db` | File exists, `integrity_check=ok`, reports `journal_mode` |
+| `migrations` | All on-disk migrations applied; lists pending |
+| `log_dir` | Size, retention policy, warns over 1 GiB |
+| `stuck_runs` | Counts runs in `running` older than 24h |
+| `workers` | Registered workers heartbeating within 5m |
+| `timezone` | IANA `tzdata` available (`America/New_York` loads) |
+| `admin_token` | Set for non-loopback binds, ≥32 chars |
+| `private_nets_guard` | `CRONLORD_BLOCK_PRIVATE_NETS` state |
+| `claude_cli` | `claude` on PATH when `kind='claude'` jobs exist |
+
+Exit codes:
+
+- `0` — all checks ok
+- `1` — at least one warning, no failures
+- `2` — one or more failures (use in CI: `cronlord doctor || exit 1`)
+
+`--json` emits the same report as a stable JSON object (`{version, checks: [{name, status, detail}]}`) suitable for monitoring pipelines.
 
 ## `cronlord job <subcommand>`
 

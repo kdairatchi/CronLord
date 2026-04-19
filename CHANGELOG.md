@@ -6,6 +6,14 @@ semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **`cronlord doctor`** — self-check command runs 12 probes (binary,
+  config, data dir, SQLite integrity, pending migrations, log dir size
+  vs. retention, stuck runs, worker heartbeats, IANA `tzdata`, admin
+  token hygiene, private-net guard state, Claude CLI presence) in well
+  under a second. Text output by default, `--json` for monitoring. Exit
+  codes: `0` all ok, `1` warnings only, `2` at least one failure — so
+  `cronlord doctor || exit 1` drops into systemd/Docker healthchecks.
+  Every check it surfaces has a matching fix in `docs/troubleshooting.md`.
 - **`cronlord --version` / `-V`** prints the binary version and exits,
   matching what most CLIs do and what the GitHub release workflow
   already assumes.
