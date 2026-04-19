@@ -74,7 +74,7 @@ module CronLord
     COLUMNS = "id,job_id,status,started_at,finished_at,exit_code,attempt,log_path," \
               "trigger,error,worker_id,lease_expires_at,heartbeat_at"
 
-    SELECT_SQL = "SELECT " + COLUMNS + " FROM runs"
+    SELECT_SQL       = "SELECT " + COLUMNS + " FROM runs"
     SELECT_BY_ID_SQL = "SELECT " + COLUMNS + " FROM runs WHERE id = ?"
 
     def self.recent(job_id : String? = nil, limit : Int32 = 100, db = DB.conn) : Array(Run)

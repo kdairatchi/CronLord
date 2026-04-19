@@ -61,10 +61,10 @@ module CronLord
       ts = Time.utc.to_unix
       sig = Auth::Hmac.digest_for(@hmac_key, ts, body)
       headers = HTTP::Headers{
-        "Content-Type"            => "application/json",
-        "X-CronLord-Worker-Id"    => @worker_id,
-        "X-CronLord-Timestamp"    => ts.to_s,
-        "X-CronLord-Signature"    => sig,
+        "Content-Type"         => "application/json",
+        "X-CronLord-Worker-Id" => @worker_id,
+        "X-CronLord-Timestamp" => ts.to_s,
+        "X-CronLord-Signature" => sig,
       }
       url = @base.resolve(path)
       response = HTTP::Client.post(url.to_s, headers: headers, body: body)

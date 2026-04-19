@@ -7,11 +7,11 @@ private def with_server(handler : HTTP::Server::Context ->) : {String, HTTP::Ser
   server = HTTP::Server.new(handler)
   addr = server.bind_tcp("127.0.0.1", 0)
   spawn { server.listen }
-  { "http://#{addr}", server }
+  {"http://#{addr}", server}
 end
 
 private def fresh_job(id : String, command : String, *,
-                     kind : String = "http", timeout_sec : Int32 = 10) : CronLord::Job
+                      kind : String = "http", timeout_sec : Int32 = 10) : CronLord::Job
   j = CronLord::Job.new(id: id, name: id, kind: kind, schedule: "@hourly", command: command)
   j.timeout_sec = timeout_sec
   j
@@ -20,7 +20,7 @@ end
 private def fresh_run(job_id : String) : {CronLord::Run, CronLord::LogBuffer, String}
   path = File.tempname("cronlord-test", ".log")
   run = CronLord::Run.new(id: CronLord::Run.new_id, job_id: job_id, status: "queued", log_path: path)
-  { run, CronLord::LogBuffer.new(path), path }
+  {run, CronLord::LogBuffer.new(path), path}
 end
 
 describe CronLord::Runner::Http do

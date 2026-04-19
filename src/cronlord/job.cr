@@ -52,7 +52,7 @@ module CronLord
               "args_json,env_json,working_dir,timeout_sec,max_concurrent,retry_count," \
               "retry_delay_sec,enabled,source,executor,labels_json,created_at,updated_at"
 
-    SELECT_ALL_SQL = "SELECT " + COLUMNS + " FROM jobs"
+    SELECT_ALL_SQL   = "SELECT " + COLUMNS + " FROM jobs"
     SELECT_BY_ID_SQL = "SELECT " + COLUMNS + " FROM jobs WHERE id = ?"
 
     def self.all(db = DB.conn) : Array(Job)

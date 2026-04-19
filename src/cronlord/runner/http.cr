@@ -12,7 +12,7 @@ module CronLord
     # marked success if the status code matches `expect_status` (default 2xx).
     class Http
       MAX_BODY_BYTES  = 32_768
-      DEFAULT_TIMEOUT = 30
+      DEFAULT_TIMEOUT =     30
 
       struct Request
         getter method : String

@@ -4,11 +4,11 @@ module CronLord
 
     def status_class(status : String) : String
       case status
-      when "success"                 then "ok"
-      when "running", "queued"       then "info"
-      when "fail", "timeout"         then "fail"
-      when "cancelled"               then "warn"
-      else                                "mute"
+      when "success"           then "ok"
+      when "running", "queued" then "info"
+      when "fail", "timeout"   then "fail"
+      when "cancelled"         then "warn"
+      else                          "mute"
       end
     end
 
@@ -37,11 +37,11 @@ module CronLord
 
     def action_class(action : String) : String
       case action
-      when .ends_with?(".delete")  then "fail"
-      when .ends_with?(".create")  then "ok"
-      when .ends_with?(".update")  then "info"
-      when .ends_with?(".run")     then "info"
-      else                              "mute"
+      when .ends_with?(".delete") then "fail"
+      when .ends_with?(".create") then "ok"
+      when .ends_with?(".update") then "info"
+      when .ends_with?(".run")    then "info"
+      else                             "mute"
       end
     end
 

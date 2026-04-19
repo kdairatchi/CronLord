@@ -12,7 +12,7 @@ module CronLord
     MAX_LOG_BYTES = 512 * 1024 # 512 KiB; server rejects larger bodies quickly
 
     record Result,
-      status : String,    # "success" | "fail" | "timeout" | "cancelled"
+      status : String, # "success" | "fail" | "timeout" | "cancelled"
       exit_code : Int32?,
       error : String?,
       log : String
@@ -83,7 +83,7 @@ module CronLord
       status : Process::Status? = nil
       timed_out = false
       cancelled = false
-      effective_cancel = cancel_chan || Channel(Nil).new   # never-fires fallback
+      effective_cancel = cancel_chan || Channel(Nil).new # never-fires fallback
 
       if timeout > 0
         select

@@ -174,10 +174,10 @@ module CronLord
       dow_hit = @dow.includes?(t.day_of_week.to_i % 7)
 
       case {@dom_restricted, @dow_restricted}
-      when {true, true}   then dom_hit || dow_hit
-      when {true, false}  then dom_hit
-      when {false, true}  then dow_hit
-      else                     true
+      when {true, true}  then dom_hit || dow_hit
+      when {true, false} then dom_hit
+      when {false, true} then dow_hit
+      else                    true
       end
     end
 
