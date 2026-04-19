@@ -16,8 +16,21 @@ module CronLord
         if model = job.args["model"]?.try(&.as_s?)
           args << "--model" << model
         end
+        if mode = job.args["permission_mode"]?.try(&.as_s?)
+          args << "--permission-mode" << mode
+        end
+        if job.args["bare"]?.try(&.as_bool?) == true
+          args << "--bare"
+        end
+        if extra = job.args["extra_args"]?.try(&.as_a?)
+          extra.each do |v|
+            if s = v.as_s?
+              args << s
+            end
+          end
+        end
 
-        buffer.write("$ #{cli} -p <prompt> (#{prompt.size} chars)", :meta)
+        buffer.write("$ #{cli} #{args.join(" ").sub(prompt, "<prompt>")} (#{prompt.size} chars)", :meta)
 
         env = ENV.to_h.merge(job.env)
         stdout_r, stdout_w = IO.pipe

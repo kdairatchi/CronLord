@@ -631,6 +631,11 @@ module CronLord
       if slack = h["slack_webhook_url"]?.try(&.as_s?)
         job.args["slack_webhook_url"] = JSON::Any.new(slack) unless slack.empty?
       end
+      if args_any = h["args"]?
+        if args_hash = args_any.as_h?
+          args_hash.each { |k, v| job.args[k] = v }
+        end
+      end
       job
     end
 
