@@ -2,6 +2,7 @@
   has_token   = !!cfg.admin_token
   has_webhook = !!cfg.github_webhook_secret
   has_sync    = cfg.github.configured?
+  has_oauth   = cfg.oauth_configured?
 %>
 
 <!-- ── System info strip ── -->
@@ -282,6 +283,100 @@ export CRONLORD_GITHUB_PATH="cronlord.toml"
           <div class="step-body">
             <div class="step-title">Trigger a sync</div>
             <div class="step-desc">Once configured, visit the <a href="/github">GitHub page</a> to sync jobs, or run <code>cronlord github sync</code> from the CLI. Combine with a webhook trigger (above) to auto-sync on every push.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- ── GitHub OAuth Login ── -->
+<div class="settings-section">
+  <div class="settings-section-header">
+    <div class="settings-section-icon <%= has_oauth ? "icon-green" : "icon-purple" %>">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+    </div>
+    <h3>GitHub OAuth Login</h3>
+    <span class="badge <%= has_oauth ? "ok" : "mute" %>" style="margin-left:auto;">
+      <%= has_oauth ? "active" : "not configured" %>
+    </span>
+  </div>
+
+  <% if has_oauth %>
+    <div class="setting-group">
+      <div class="setting-row">
+        <div class="setting-row-icon icon-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="setting-row-body">
+          <div class="setting-row-label">OAuth active</div>
+          <div class="setting-row-desc">UI requires GitHub login. API keeps using <code>admin_token</code> unchanged.</div>
+        </div>
+        <span class="badge ok">active</span>
+      </div>
+      <% if u = current_user %>
+        <div class="setting-row">
+          <div class="setting-row-icon icon-blue">
+            <img src="<%= u.avatar %>" width="20" height="20" style="border-radius:50%;" alt="<%= u.login %>">
+          </div>
+          <div class="setting-row-body">
+            <div class="setting-row-label">Signed in as</div>
+            <div class="setting-row-desc mono"><%= u.login %></div>
+          </div>
+          <a href="/auth/logout"><button class="ghost">Sign out</button></a>
+        </div>
+      <% end %>
+      <div class="setting-row">
+        <div class="setting-row-icon icon-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <div class="setting-row-body">
+          <div class="setting-row-label">Callback URL</div>
+          <div class="setting-row-desc">Register this in your GitHub OAuth App</div>
+        </div>
+        <div class="setting-row-value mono small">http://<%= cfg.listen_host %>:<%= cfg.listen_port %>/auth/github/callback</div>
+      </div>
+    </div>
+  <% else %>
+    <div class="setup-guide">
+      <div class="setup-guide-header">
+        <div class="guide-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </div>
+        <h4>Require GitHub login to access the UI</h4>
+        <span class="small muted" style="margin-left:auto;">API always uses admin_token</span>
+      </div>
+      <div class="setup-guide-body">
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Create a GitHub OAuth App</div>
+            <div class="step-desc">Go to <a href="https://github.com/settings/developers" target="_blank" rel="noopener">github.com/settings/developers</a> → <strong>New OAuth App</strong>. Set the callback URL to:</div>
+            <div class="code-copy" id="cb-url">http://<%= cfg.listen_host %>:<%= cfg.listen_port %>/auth/github/callback
+<button class="copy-trigger" onclick="copyEl('cb-url')">copy</button></div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Configure via environment variables</div>
+            <div class="code-copy" id="oauth-env">export CRONLORD_GITHUB_CLIENT_ID="&lt;your-client-id&gt;"
+export CRONLORD_GITHUB_CLIENT_SECRET="&lt;your-client-secret&gt;"
+export CRONLORD_SESSION_SECRET="$(openssl rand -hex 32)"
+<button class="copy-trigger" onclick="copyEl('oauth-env')">copy</button></div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Or add to cronlord.toml</div>
+            <div class="code-copy" id="oauth-toml">[server]
+session_secret = "&lt;openssl rand -hex 32&gt;"
+
+[github]
+client_id     = "&lt;your-client-id&gt;"
+client_secret = "&lt;your-client-secret&gt;"
+<button class="copy-trigger" onclick="copyEl('oauth-toml')">copy</button></div>
           </div>
         </div>
       </div>

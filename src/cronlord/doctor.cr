@@ -51,6 +51,7 @@ module CronLord
         check_private_nets,
         check_claude_cli,
         check_github_webhook(cfg),
+        check_oauth(cfg),
       ]
     end
 
@@ -227,6 +228,19 @@ module CronLord
       end
     rescue ex
       Check.new("claude_cli", Status::Warn, "check failed: #{ex.message}")
+    end
+
+    private def check_oauth(cfg : Config) : Check
+      if cfg.oauth_configured?
+        Check.new("github_oauth", Status::OK,
+          "client_id set, session_secret set — UI requires GitHub login")
+      elsif !cfg.session_secret.nil?
+        Check.new("github_oauth", Status::Warn,
+          "session_secret set but client_id/secret missing — OAuth not active")
+      else
+        Check.new("github_oauth", Status::OK,
+          "not configured — UI open (no login required)")
+      end
     end
 
     private def check_github_webhook(cfg : Config) : Check

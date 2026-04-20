@@ -2,6 +2,9 @@ require "kemal"
 require "json"
 require "ecr"
 require "openssl/hmac"
+require "uri/params"
+require "base64"
+require "crypto/subtle"
 
 module CronLord
   # HTTP + WebSocket + server-rendered UI. The UI is intentionally simple -
@@ -349,7 +352,83 @@ module CronLord
       sched = @scheduler
       server = self
 
+      # ---- GitHub OAuth routes (exempt from session guard) ----------------
+
+      get "/auth/github" do |env|
+        next env.redirect("/") unless cfg.oauth_configured?
+        state = Auth.random_state
+        env.response.headers["Set-Cookie"] =
+          "#{Auth::STATE_COOKIE}=#{state}; HttpOnly; SameSite=Lax; Max-Age=600; Path=/"
+        redirect_uri = "#{worker_base_url(env)}/auth/github/callback"
+        env.redirect Auth.authorize_url(cfg.github_client_id.not_nil!, redirect_uri, state)
+      end
+
+      get "/auth/github/callback" do |env|
+        unless cfg.oauth_configured?
+          env.response.status_code = 503
+          next "OAuth not configured."
+        end
+        code = env.params.query["code"]?
+        state = env.params.query["state"]?
+        stored_state = env.request.headers["Cookie"]?
+          .to_s.split(";").map(&.strip)
+          .find(&.starts_with?("#{Auth::STATE_COOKIE}="))
+          .try { |pair| pair.split("=", 2)[1]? }
+        unless code && state && stored_state && state == stored_state
+          env.response.status_code = 400
+          next "OAuth state mismatch — go back and try again."
+        end
+        redirect_uri = "#{worker_base_url(env)}/auth/github/callback"
+        token = Auth.exchange_code(
+          cfg.github_client_id.not_nil!,
+          cfg.github_client_secret.not_nil!,
+          code,
+          redirect_uri
+        )
+        unless token
+          env.response.status_code = 502
+          next "GitHub token exchange failed."
+        end
+        user = Auth.fetch_user(token)
+        unless user
+          env.response.status_code = 502
+          next "Could not fetch GitHub user."
+        end
+        session_val = Auth.encode_session(user, cfg.session_secret.not_nil!)
+        env.response.headers["Set-Cookie"] =
+          "#{Auth::SESSION_COOKIE}=#{session_val}; HttpOnly; SameSite=Lax; Max-Age=#{Auth::SESSION_TTL}; Path=/"
+        env.redirect "/"
+      end
+
+      get "/auth/logout" do |env|
+        env.response.headers["Set-Cookie"] =
+          "#{Auth::SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/"
+        env.redirect "/auth/github"
+      end
+
+      # ---- Session resolver -----------------------------------------------
+      # Returns the verified session or nil. Defined once, closed over cfg.
+      # Every guarded route calls this and redirects to /auth/github on nil.
+
+      resolve_session = ->(env : HTTP::Server::Context) {
+        secret = cfg.session_secret
+        return nil unless secret
+        cookie_header = env.request.headers["Cookie"]?
+        return nil unless cookie_header
+        val = cookie_header.split(";").map(&.strip)
+          .find(&.starts_with?("#{Auth::SESSION_COOKIE}="))
+          .try { |pair| pair.split("=", 2)[1]? }
+        return nil unless val
+        Auth.decode_session(val, secret)
+      }
+
       get "/" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "Overview"
         nav_active = "overview"
         show_new_job = true
@@ -389,6 +468,12 @@ module CronLord
       end
 
       get "/jobs" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "Jobs"
         nav_active = "jobs"
         show_new_job = true
@@ -411,6 +496,12 @@ module CronLord
       end
 
       get "/jobs/new" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "New job"
         nav_active = "jobs"
         show_new_job = false
@@ -428,6 +519,12 @@ module CronLord
       end
 
       get "/jobs/:id" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         job = Job.find(env.params.url["id"])
         if job.nil?
           env.response.status_code = 404
@@ -449,6 +546,9 @@ module CronLord
       end
 
       post "/jobs" do |env|
+        if cfg.oauth_configured?
+          next env.redirect("/auth/github") unless resolve_session.call(env)
+        end
         form = env.params.body
         job = job_from_form(form)
         job.upsert
@@ -459,6 +559,9 @@ module CronLord
       end
 
       post "/jobs/:id" do |env|
+        if cfg.oauth_configured?
+          next env.redirect("/auth/github") unless resolve_session.call(env)
+        end
         existing = Job.find(env.params.url["id"])
         unless existing
           env.response.status_code = 404
@@ -474,6 +577,9 @@ module CronLord
       end
 
       post "/jobs/:id/run" do |env|
+        if cfg.oauth_configured?
+          next env.redirect("/auth/github") unless resolve_session.call(env)
+        end
         job = Job.find(env.params.url["id"])
         if job.nil?
           env.response.status_code = 404
@@ -486,6 +592,9 @@ module CronLord
       end
 
       post "/jobs/:id/delete" do |env|
+        if cfg.oauth_configured?
+          next env.redirect("/auth/github") unless resolve_session.call(env)
+        end
         id = env.params.url["id"]
         if Job.delete(id)
           Audit.write("job.delete", actor: "ui", target: "job:#{id}")
@@ -495,6 +604,12 @@ module CronLord
       end
 
       get "/runs" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "Runs"
         nav_active = "runs"
         show_new_job = false
@@ -515,6 +630,9 @@ module CronLord
       end
 
       post "/runs/:id/cancel" do |env|
+        if cfg.oauth_configured?
+          next env.redirect("/auth/github") unless resolve_session.call(env)
+        end
         run = find_run(env.params.url["id"])
         if run.nil?
           env.response.status_code = 404
@@ -527,6 +645,12 @@ module CronLord
       end
 
       get "/runs/:id" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         run = find_run(env.params.url["id"])
         if run.nil?
           env.response.status_code = 404
@@ -545,6 +669,12 @@ module CronLord
       end
 
       get "/audit" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "Audit"
         nav_active = "audit"
         show_new_job = false
@@ -556,6 +686,12 @@ module CronLord
       end
 
       get "/doctor" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "Doctor"
         nav_active = "doctor"
         show_new_job = false
@@ -574,6 +710,12 @@ module CronLord
       end
 
       get "/settings" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "Settings"
         nav_active = "settings"
         show_new_job = false
@@ -584,6 +726,12 @@ module CronLord
       # ---- GitHub sync UI ------------------------------------------------
 
       get "/github" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "GitHub Sync"
         nav_active = "github"
         show_new_job = false
@@ -594,6 +742,12 @@ module CronLord
       end
 
       post "/github/sync" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         unless cfg.github.configured?
           env.response.headers["Location"] = "/github"
           env.response.status_code = 303
@@ -619,6 +773,12 @@ module CronLord
       # ---- Workers UI ----------------------------------------------------
 
       get "/workers" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "Workers"
         nav_active = "workers"
         show_new_job = false
@@ -628,6 +788,12 @@ module CronLord
       end
 
       get "/workers/new" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         page_title = "Register worker"
         nav_active = "workers"
         show_new_job = false
@@ -636,6 +802,12 @@ module CronLord
       end
 
       post "/workers" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
         name = env.params.body["name"]?.to_s.strip
         if name.empty?
           env.response.status_code = 400
@@ -657,6 +829,9 @@ module CronLord
       end
 
       post "/workers/:id/enable" do |env|
+        if cfg.oauth_configured?
+          next env.redirect("/auth/github") unless resolve_session.call(env)
+        end
         worker = Worker.find(env.params.url["id"])
         if worker
           worker.enabled = true
@@ -668,6 +843,9 @@ module CronLord
       end
 
       post "/workers/:id/disable" do |env|
+        if cfg.oauth_configured?
+          next env.redirect("/auth/github") unless resolve_session.call(env)
+        end
         worker = Worker.find(env.params.url["id"])
         if worker
           worker.enabled = false
@@ -679,6 +857,9 @@ module CronLord
       end
 
       post "/workers/:id/delete" do |env|
+        if cfg.oauth_configured?
+          next env.redirect("/auth/github") unless resolve_session.call(env)
+        end
         id = env.params.url["id"]
         if Worker.delete(id)
           Audit.write("worker.delete", actor: "ui", target: "worker:#{id}", meta: {} of String => JSON::Any)

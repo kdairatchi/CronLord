@@ -13,6 +13,9 @@ module CronLord
     getter github_webhook_secret : String?
     getter file_jobs : Array(FileJob)
     getter github : GithubConfig
+    getter session_secret : String?
+    getter github_client_id : String?
+    getter github_client_secret : String?
 
     DEFAULT_PATH = "cronlord.toml"
 
@@ -59,7 +62,14 @@ module CronLord
 
     def initialize(@listen_host, @listen_port, @data_dir, @db_path, @log_dir,
                    @admin_token, @github_webhook_secret, @file_jobs,
-                   @github = GithubConfig.new)
+                   @github = GithubConfig.new,
+                   @session_secret = nil.as(String?),
+                   @github_client_id = nil.as(String?),
+                   @github_client_secret = nil.as(String?))
+    end
+
+    def oauth_configured? : Bool
+      !@github_client_id.nil? && !@github_client_secret.nil? && !@session_secret.nil?
     end
 
     def self.load(path : String = DEFAULT_PATH) : Config
@@ -81,6 +91,13 @@ module CronLord
       admin_token = ENV["CRONLORD_ADMIN_TOKEN"]? || server["admin_token"]?.try(&.as_s?)
       github_webhook_secret = ENV["CRONLORD_GITHUB_WEBHOOK_SECRET"]? ||
         doc["github"]?.try(&.as_h?).try { |h| h["webhook_secret"]?.try(&.as_s?) }
+
+      session_secret = ENV["CRONLORD_SESSION_SECRET"]? ||
+        server["session_secret"]?.try(&.as_s?)
+      github_client_id = ENV["CRONLORD_GITHUB_CLIENT_ID"]? ||
+        doc["github"]?.try(&.as_h?).try { |h| h["client_id"]?.try(&.as_s?) }
+      github_client_secret = ENV["CRONLORD_GITHUB_CLIENT_SECRET"]? ||
+        doc["github"]?.try(&.as_h?).try { |h| h["client_secret"]?.try(&.as_s?) }
 
       jobs = parse_file_jobs(doc["jobs"]?)
 
@@ -104,6 +121,9 @@ module CronLord
         github_webhook_secret: github_webhook_secret,
         file_jobs:             jobs,
         github:                github_cfg,
+        session_secret:        session_secret,
+        github_client_id:      github_client_id,
+        github_client_secret:  github_client_secret,
       )
     end
 

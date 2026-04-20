@@ -11,6 +11,20 @@ port = 7070
 ## Generate one with: openssl rand -hex 32
 # admin_token = "replace-me-with-a-long-random-string"
 
+## GitHub OAuth login. When configured, the web UI requires a GitHub login.
+## The API (/api/*) is unaffected — it still uses admin_token.
+## Generate a session_secret with: openssl rand -hex 32
+## Create an OAuth App at: github.com/settings/developers
+## Callback URL: http://HOST:PORT/auth/github/callback
+## Override with CRONLORD_SESSION_SECRET, CRONLORD_GITHUB_CLIENT_ID,
+## CRONLORD_GITHUB_CLIENT_SECRET.
+# [server]
+# session_secret = "replace-me-with-openssl-rand-hex-32"
+
+# [github]
+# client_id     = "your-github-oauth-app-client-id"
+# client_secret = "your-github-oauth-app-client-secret"
+
 ## GitHub integration. Controls both the webhook trigger and the job-sync feature.
 ## Override any key with CRONLORD_GITHUB_* env vars.
 # [github]

@@ -69,7 +69,14 @@
     <div class="spacer"></div>
     <div class="foot">
       <span>v<%= CronLord::VERSION %></span>
-      <a href="https://github.com/kdairatchi/CronLord" target="_blank" rel="noopener">github</a>
+      <% if u = current_user %>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <img src="<%= u.avatar %>" width="20" height="20" style="border-radius:50%;flex-shrink:0;" alt="<%= u.login %>">
+          <a href="/auth/logout" style="font-size:11px;color:var(--fg-muted);">sign out</a>
+        </div>
+      <% else %>
+        <a href="https://github.com/kdairatchi/CronLord" target="_blank" rel="noopener">github</a>
+      <% end %>
     </div>
   </aside>
 
