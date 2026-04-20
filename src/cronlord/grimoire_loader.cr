@@ -13,7 +13,7 @@ module CronLord
       enabled : Bool,
       timezone : String,
       timeout_sec : Int32,
-      file_path : String  # relative path within grimoire/rituals/
+      file_path : String # relative path within grimoire/rituals/
 
     def self.rituals_dir(grimoire_path : String) : String
       File.join(grimoire_path, "rituals")
@@ -54,24 +54,24 @@ module CronLord
       jobs = doc["jobs"]?.try(&.as_a?) || return nil
       entry = jobs.first?.try(&.as_h?) || return nil
 
-      id       = entry["id"]?.try(&.as_s?)   || return nil
-      name     = entry["name"]?.try(&.as_s?) || id
+      id = entry["id"]?.try(&.as_s?) || return nil
+      name = entry["name"]?.try(&.as_s?) || id
       schedule = entry["schedule"]?.try(&.as_s?) || return nil
-      command  = entry["command"]?.try(&.as_s?) || return nil
+      command = entry["command"]?.try(&.as_s?) || return nil
 
       Ritual.new(
-        id:          id,
-        name:        name,
+        id: id,
+        name: name,
         description: entry["description"]?.try(&.as_s?) || "",
-        category:    entry["category"]?.try(&.as_s?) ||
-                     rel.split(File::SEPARATOR).first? || "default",
-        schedule:    schedule,
-        command:     command,
-        kind:        entry["kind"]?.try(&.as_s?) || "shell",
-        enabled:     entry["enabled"]?.try(&.as_bool?) || false,
-        timezone:    entry["timezone"]?.try(&.as_s?) || "UTC",
+        category: entry["category"]?.try(&.as_s?) ||
+                  rel.split(File::SEPARATOR).first? || "default",
+        schedule: schedule,
+        command: command,
+        kind: entry["kind"]?.try(&.as_s?) || "shell",
+        enabled: entry["enabled"]?.try(&.as_bool?) || false,
+        timezone: entry["timezone"]?.try(&.as_s?) || "UTC",
         timeout_sec: entry["timeout_sec"]?.try(&.as_i?) || 0,
-        file_path:   rel,
+        file_path: rel,
       )
     end
   end

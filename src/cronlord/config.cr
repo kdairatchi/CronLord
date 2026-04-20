@@ -81,29 +81,29 @@ module CronLord
               TOML::Table.new
             end
 
-      server  = doc["server"]?.try(&.as_h?) || TOML::Table.new
+      server = doc["server"]?.try(&.as_h?) || TOML::Table.new
       storage = doc["storage"]?.try(&.as_h?) || TOML::Table.new
 
       # Precedence: env > toml > default.
-      host    = ENV["CRONLORD_HOST"]? || server["host"]?.try(&.as_s?) || "127.0.0.1"
-      port    = ENV["CRONLORD_PORT"]?.try(&.to_i32) || server["port"]?.try(&.as_i?) || 7070
+      host = ENV["CRONLORD_HOST"]? || server["host"]?.try(&.as_s?) || "127.0.0.1"
+      port = ENV["CRONLORD_PORT"]?.try(&.to_i32) || server["port"]?.try(&.as_i?) || 7070
       data_dir = ENV["CRONLORD_DATA"]? || storage["data_dir"]?.try(&.as_s?) || "var"
-      db_path  = ENV["CRONLORD_DB"]? || storage["db_path"]?.try(&.as_s?) || File.join(data_dir, "cronlord.db")
-      log_dir  = ENV["CRONLORD_LOG_DIR"]? || storage["log_dir"]?.try(&.as_s?) || File.join(data_dir, "logs")
+      db_path = ENV["CRONLORD_DB"]? || storage["db_path"]?.try(&.as_s?) || File.join(data_dir, "cronlord.db")
+      log_dir = ENV["CRONLORD_LOG_DIR"]? || storage["log_dir"]?.try(&.as_s?) || File.join(data_dir, "logs")
       admin_token = ENV["CRONLORD_ADMIN_TOKEN"]? || server["admin_token"]?.try(&.as_s?)
       github_webhook_secret = ENV["CRONLORD_GITHUB_WEBHOOK_SECRET"]? ||
-        doc["github"]?.try(&.as_h?).try { |h| h["webhook_secret"]?.try(&.as_s?) }
+                              doc["github"]?.try(&.as_h?).try { |h| h["webhook_secret"]?.try(&.as_s?) }
 
       session_secret = ENV["CRONLORD_SESSION_SECRET"]? ||
-        server["session_secret"]?.try(&.as_s?)
+                       server["session_secret"]?.try(&.as_s?)
       github_client_id = ENV["CRONLORD_GITHUB_CLIENT_ID"]? ||
-        doc["github"]?.try(&.as_h?).try { |h| h["client_id"]?.try(&.as_s?) }
+                         doc["github"]?.try(&.as_h?).try { |h| h["client_id"]?.try(&.as_s?) }
       github_client_secret = ENV["CRONLORD_GITHUB_CLIENT_SECRET"]? ||
-        doc["github"]?.try(&.as_h?).try { |h| h["client_secret"]?.try(&.as_s?) }
+                             doc["github"]?.try(&.as_h?).try { |h| h["client_secret"]?.try(&.as_s?) }
 
       grimoire_section = doc["grimoire"]?.try(&.as_h?) || TOML::Table.new
       grimoire_path = ENV["CRONLORD_GRIMOIRE_PATH"]? ||
-        grimoire_section["path"]?.try(&.as_s?)
+                      grimoire_section["path"]?.try(&.as_s?)
       # auto-detect adjacent grimoire directory if not explicitly set
       if grimoire_path.nil?
         candidates = [
@@ -118,28 +118,28 @@ module CronLord
 
       gh_section = doc["github"]?.try(&.as_h?) || TOML::Table.new
       github_cfg = GithubConfig.new(
-        repo:      ENV["CRONLORD_GITHUB_REPO"]? || gh_section["repo"]?.try(&.as_s?),
-        branch:    ENV["CRONLORD_GITHUB_BRANCH"]? || gh_section["branch"]?.try(&.as_s?) || "main",
-        path:      ENV["CRONLORD_GITHUB_PATH"]? || gh_section["path"]?.try(&.as_s?) || "cronlord.toml",
-        token:     ENV["CRONLORD_GITHUB_TOKEN"]? || gh_section["token"]?.try(&.as_s?),
+        repo: ENV["CRONLORD_GITHUB_REPO"]? || gh_section["repo"]?.try(&.as_s?),
+        branch: ENV["CRONLORD_GITHUB_BRANCH"]? || gh_section["branch"]?.try(&.as_s?) || "main",
+        path: ENV["CRONLORD_GITHUB_PATH"]? || gh_section["path"]?.try(&.as_s?) || "cronlord.toml",
+        token: ENV["CRONLORD_GITHUB_TOKEN"]? || gh_section["token"]?.try(&.as_s?),
         auto_sync: (ENV["CRONLORD_GITHUB_AUTO_SYNC"]? == "1") ||
                    (gh_section["auto_sync"]?.try(&.as_bool?) || false),
       )
 
       Config.new(
-        listen_host:           host,
-        listen_port:           port.to_i32,
-        data_dir:              data_dir,
-        db_path:               db_path,
-        log_dir:               log_dir,
-        admin_token:           admin_token,
+        listen_host: host,
+        listen_port: port.to_i32,
+        data_dir: data_dir,
+        db_path: db_path,
+        log_dir: log_dir,
+        admin_token: admin_token,
         github_webhook_secret: github_webhook_secret,
-        file_jobs:             jobs,
-        github:                github_cfg,
-        session_secret:        session_secret,
-        github_client_id:      github_client_id,
-        github_client_secret:  github_client_secret,
-        grimoire_path:         grimoire_path,
+        file_jobs: jobs,
+        github: github_cfg,
+        session_secret: session_secret,
+        github_client_id: github_client_id,
+        github_client_secret: github_client_secret,
+        grimoire_path: grimoire_path,
       )
     end
 
@@ -152,22 +152,22 @@ module CronLord
       array = raw.as_a? || return [] of FileJob
       array.compact_map do |entry|
         h = entry.as_h? || next
-        id       = h["id"]?.try(&.as_s?)
-        name     = h["name"]?.try(&.as_s?) || id
+        id = h["id"]?.try(&.as_s?)
+        name = h["name"]?.try(&.as_s?) || id
         schedule = h["schedule"]?.try(&.as_s?)
-        command  = h["command"]?.try(&.as_s?)
+        command = h["command"]?.try(&.as_s?)
         next unless id && name && schedule && command
         FileJob.new(
-          id:            id,
-          name:          name,
-          schedule:      schedule,
-          command:       command,
-          kind:          h["kind"]?.try(&.as_s?) || "shell",
-          enabled:       h["enabled"]?.try(&.as_bool?).nil? ? true : h["enabled"].as_bool,
-          category:      h["category"]?.try(&.as_s?) || "default",
-          timeout_sec:   h["timeout_sec"]?.try(&.as_i?) || 0,
+          id: id,
+          name: name,
+          schedule: schedule,
+          command: command,
+          kind: h["kind"]?.try(&.as_s?) || "shell",
+          enabled: h["enabled"]?.try(&.as_bool?).nil? ? true : h["enabled"].as_bool,
+          category: h["category"]?.try(&.as_s?) || "default",
+          timeout_sec: h["timeout_sec"]?.try(&.as_i?) || 0,
           max_concurrent: h["max_concurrent"]?.try(&.as_i?) || 1,
-          timezone:      h["timezone"]?.try(&.as_s?) || "UTC",
+          timezone: h["timezone"]?.try(&.as_s?) || "UTC",
         )
       end
     end

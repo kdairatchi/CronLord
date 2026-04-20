@@ -39,9 +39,9 @@ module CronLord
         return Result.new(imported: 0, updated: 0, errors: ["github not configured"])
       end
 
-      repo   = gh.repo.not_nil!
+      repo = gh.repo.not_nil!
       branch = gh.branch
-      path   = gh.path
+      path = gh.path
 
       body, fetch_err = fetch_content(repo, branch, path, gh.token)
       if fetch_err
@@ -52,21 +52,21 @@ module CronLord
       jobs, parse_errors = parse_jobs(raw_body, path)
 
       imported = 0
-      updated  = 0
+      updated = 0
 
       jobs.each do |fj|
         existed = Job.find(fj.id)
         job = existed || Job.new(fj.id, fj.name, fj.kind, fj.schedule, fj.command)
-        job.name          = fj.name
-        job.kind          = fj.kind
-        job.schedule      = fj.schedule
-        job.command       = fj.command
-        job.enabled       = fj.enabled
-        job.category      = fj.category
-        job.timeout_sec   = fj.timeout_sec
+        job.name = fj.name
+        job.kind = fj.kind
+        job.schedule = fj.schedule
+        job.command = fj.command
+        job.enabled = fj.enabled
+        job.category = fj.category
+        job.timeout_sec = fj.timeout_sec
         job.max_concurrent = fj.max_concurrent
-        job.timezone      = fj.timezone
-        job.source        = "github"
+        job.timezone = fj.timezone
+        job.source = "github"
         begin
           job.upsert
           if existed
@@ -76,9 +76,9 @@ module CronLord
           end
           Audit.write(
             existed ? "job.update" : "job.create",
-            actor:  "github_sync",
+            actor: "github_sync",
             target: "job:#{job.id}",
-            meta:   {"name" => JSON::Any.new(job.name), "repo" => JSON::Any.new(repo)},
+            meta: {"name" => JSON::Any.new(job.name), "repo" => JSON::Any.new(repo)},
           )
         rescue ex
           parse_errors << "upsert #{fj.id}: #{ex.message}"
@@ -104,10 +104,10 @@ module CronLord
                               token : String) : {String?, String?}
       url = "https://api.github.com/repos/#{repo}/contents/#{path}?ref=#{branch}"
       begin
-        uri    = URI.parse(url)
+        uri = URI.parse(url)
         client = HTTP::Client.new(host: "api.github.com", port: 443, tls: true)
         client.connect_timeout = 15.seconds
-        client.read_timeout    = 15.seconds
+        client.read_timeout = 15.seconds
         headers = HTTP::Headers{
           "Authorization" => "Bearer #{token}",
           "Accept"        => "application/vnd.github.raw+json",
@@ -129,10 +129,10 @@ module CronLord
     private def fetch_via_raw(repo : String, branch : String, path : String) : {String?, String?}
       url = "https://raw.githubusercontent.com/#{repo}/#{branch}/#{path}"
       begin
-        uri    = URI.parse(url)
+        uri = URI.parse(url)
         client = HTTP::Client.new(host: "raw.githubusercontent.com", port: 443, tls: true)
         client.connect_timeout = 15.seconds
-        client.read_timeout    = 15.seconds
+        client.read_timeout = 15.seconds
         headers = HTTP::Headers{"User-Agent" => "CronLord/#{CronLord::VERSION}"}
         req_path = uri.path
         resp = client.get(req_path, headers: headers)
@@ -151,8 +151,8 @@ module CronLord
     private def parse_jobs(body : String, path : String) : {Array(Config::FileJob), Array(String)}
       errors = [] of String
       begin
-        doc    = TOML.parse(body)
-        raw    = doc["jobs"]?
+        doc = TOML.parse(body)
+        raw = doc["jobs"]?
         if raw.nil?
           return {[] of Config::FileJob, ["no [[jobs]] entries found in #{path}"]}
         end

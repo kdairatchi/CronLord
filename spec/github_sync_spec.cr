@@ -91,7 +91,7 @@ describe CronLord::GithubSync do
         command  = "echo hi"
         TOML
 
-      doc  = TOML.parse(toml_src)
+      doc = TOML.parse(toml_src)
       jobs = CronLord::Config.parse_file_jobs_public(doc["jobs"]?)
       jobs.size.should eq 2
       jobs.first.id.should eq "spec-job-1"
@@ -100,7 +100,7 @@ describe CronLord::GithubSync do
     end
 
     it "returns an empty array when jobs key is absent" do
-      doc  = TOML.parse("# empty")
+      doc = TOML.parse("# empty")
       jobs = CronLord::Config.parse_file_jobs_public(doc["jobs"]?)
       jobs.should be_empty
     end
@@ -118,7 +118,7 @@ describe CronLord::GithubSync do
         command  = "true"
         TOML
 
-      doc  = TOML.parse(toml_src)
+      doc = TOML.parse(toml_src)
       jobs = CronLord::Config.parse_file_jobs_public(doc["jobs"]?)
       jobs.size.should eq 1
       jobs.first.id.should eq "good-one"
