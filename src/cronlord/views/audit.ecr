@@ -5,31 +5,36 @@
 </div>
 
 <div class="card" style="padding:0;">
-<table class="table">
-  <thead>
-    <tr>
-      <th style="width:180px;">When</th>
-      <th style="width:120px;">Actor</th>
-      <th style="width:160px;">Action</th>
-      <th>Target</th>
-      <th>Detail</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% entries.each do |entry| %>
+  <% if entries.empty? %>
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <h3>No audit entries</h3>
+      <p>Entries appear when jobs, workers, or runs are mutated.</p>
+    </div>
+  <% else %>
+  <table class="table">
+    <thead>
       <tr>
-        <td class="mono"><%= entry.at_time.to_s("%F %H:%M:%S") %></td>
-        <td><span class="badge mute"><%= entry.actor %></span></td>
-        <td><span class="badge <%= action_class.call(entry.action) %>"><%= entry.action %></span></td>
-        <td class="mono small"><%= entry.target || "-" %></td>
-        <td class="mono small muted"><%= meta_summary.call(entry) %></td>
+        <th style="width:180px;">When</th>
+        <th style="width:100px;">Actor</th>
+        <th style="width:150px;">Action</th>
+        <th>Target</th>
+        <th>Detail</th>
       </tr>
-    <% end %>
-    <% if entries.empty? %>
-      <tr><td colspan="5" class="muted" style="padding:24px;text-align:center;">
-        No audit entries yet. Mutating an object creates one.
-      </td></tr>
-    <% end %>
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      <% entries.each do |entry| %>
+        <tr>
+          <td class="mono small"><%= entry.at_time.to_s("%F %H:%M:%S") %></td>
+          <td><span class="badge mute"><%= entry.actor %></span></td>
+          <td><span class="badge <%= action_class.call(entry.action) %>"><%= entry.action %></span></td>
+          <td class="mono small"><%= entry.target || "—" %></td>
+          <td class="mono small muted"><%= meta_summary.call(entry) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% end %>
 </div>

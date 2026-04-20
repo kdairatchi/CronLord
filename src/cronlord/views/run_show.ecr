@@ -1,59 +1,156 @@
 <div class="toolbar">
-  <a href="/runs"><button class="ghost"><- All runs</button></a>
+  <a href="/runs"><button class="ghost">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-right:3px;vertical-align:-1px;"><polyline points="15 18 9 12 15 6"/></svg>
+    All runs
+  </button></a>
   <div style="flex:1"></div>
   <% if %w(queued running).includes?(run.status) %>
-    <form method="post" action="/runs/<%= run.id %>/cancel" style="margin-right:12px;"
+    <form method="post" action="/runs/<%= run.id %>/cancel"
           onsubmit="return confirm('Cancel this run?');">
-      <button class="ghost" type="submit">Cancel run</button>
+      <button class="danger" type="submit">Cancel run</button>
     </form>
   <% end %>
-  <span class="badge <%= status_class(run.status) %>"><%= run.status %></span>
+  <span class="badge <%= status_class(run.status) %>">
+    <% if run.status == "running" %>
+      <span class="status-dot running" style="width:5px;height:5px;"></span>
+    <% end %>
+    <%= run.status %>
+  </span>
 </div>
 
-<div class="grid cols-2" style="margin-bottom:18px;">
+<div class="grid cols-2" style="margin-bottom:16px;">
   <div class="card">
-    <h3>Run</h3>
-    <div class="small muted">ID</div>
-    <div class="mono"><%= run.id %></div>
-    <div class="small muted" style="margin-top:8px;">Job</div>
-    <div><a href="/jobs/<%= run.job_id %>"><%= job_name %></a></div>
-    <div class="small muted" style="margin-top:8px;">Trigger</div>
-    <div><span class="badge mute"><%= run.trigger %></span></div>
+    <h3>Run details</h3>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:baseline;margin-top:10px;">
+      <span class="small muted">ID</span>
+      <span class="mono small"><%= run.id %></span>
+      <span class="small muted">Job</span>
+      <span><a href="/jobs/<%= run.job_id %>"><%= job_name %></a></span>
+      <span class="small muted">Trigger</span>
+      <span><span class="badge mute"><%= run.trigger %></span></span>
+    </div>
   </div>
   <div class="card">
     <h3>Timing</h3>
-    <div class="small muted">Started</div>
-    <div class="mono"><%= run.started_at ? Time.unix(run.started_at.not_nil!).to_s("%F %H:%M:%S") : "-" %></div>
-    <div class="small muted" style="margin-top:8px;">Finished</div>
-    <div class="mono"><%= run.finished_at ? Time.unix(run.finished_at.not_nil!).to_s("%F %H:%M:%S") : "running..." %></div>
-    <div class="small muted" style="margin-top:8px;">Duration</div>
-    <div class="mono"><%= duration %></div>
-    <div class="small muted" style="margin-top:8px;">Exit</div>
-    <div class="mono"><%= run.exit_code.to_s %></div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:baseline;margin-top:10px;">
+      <span class="small muted">Started</span>
+      <span class="mono small"><%= run.started_at ? Time.unix(run.started_at.not_nil!).to_s("%F %H:%M:%S") : "—" %></span>
+      <span class="small muted">Finished</span>
+      <span class="mono small"><%= run.finished_at ? Time.unix(run.finished_at.not_nil!).to_s("%F %H:%M:%S") : "running…" %></span>
+      <span class="small muted">Duration</span>
+      <span class="mono small"><%= duration %></span>
+      <span class="small muted">Exit code</span>
+      <span class="mono small"><%= run.exit_code.to_s %></span>
+    </div>
   </div>
 </div>
 
-<div class="card">
-  <div class="row between" style="margin-bottom:10px;">
-    <h3 style="margin:0;">Log</h3>
-    <span class="small muted" id="log-status">streaming...</span>
+<div class="card" style="padding:0;">
+  <div class="log-toolbar">
+    <div class="log-title">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      stdout / stderr
+      <span class="log-status" id="log-status">
+        <span class="status-dot running" id="log-dot"></span>
+        streaming…
+      </span>
+    </div>
+    <div class="log-controls">
+      <button class="icon-btn" id="autoscroll-btn" title="Auto-scroll" aria-pressed="true" style="color:var(--accent);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="17 13 12 18 7 13"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
+      </button>
+      <button class="icon-btn" id="copy-btn" title="Copy log">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+    </div>
   </div>
-  <pre class="log" id="log-pane"><%= initial_log %></pre>
+  <div class="log" id="log-pane">
+    <% if initial_log.empty? %>
+      <div class="log-empty">Waiting for output…</div>
+    <% else %>
+      <% initial_log.each_line.with_index(1) do |line, i| %>
+        <div class="log-line"><span class="ln"><%= i %></span><span class="lc"><%= line %></span></div>
+      <% end %>
+    <% end %>
+  </div>
 </div>
 
 <script>
 (function () {
-  const pane = document.getElementById("log-pane");
-  const status = document.getElementById("log-status");
+  const pane    = document.getElementById("log-pane");
+  const statusEl = document.getElementById("log-status");
+  const dotEl    = document.getElementById("log-dot");
+  const copyBtn  = document.getElementById("copy-btn");
+  const scrollBtn = document.getElementById("autoscroll-btn");
+  let lineNum  = pane.querySelectorAll(".log-line").length + 1;
+  let autoScroll = true;
+  let rawLines   = [];
+
+  // collect initial text
+  pane.querySelectorAll(".lc").forEach((el) => rawLines.push(el.textContent));
+
+  function appendLine(text, cls) {
+    const existing = pane.querySelector(".log-empty");
+    if (existing) existing.remove();
+
+    rawLines.push(text);
+    const row  = document.createElement("div");
+    row.className = "log-line";
+    const ln   = document.createElement("span");
+    ln.className = "ln";
+    ln.textContent = lineNum++;
+    const lc   = document.createElement("span");
+    lc.className = "lc" + (cls ? " " + cls : "");
+    lc.innerHTML = ansiToHtml(escHtml(text));
+    row.appendChild(ln);
+    row.appendChild(lc);
+    pane.appendChild(row);
+    if (autoScroll) pane.scrollTop = pane.scrollHeight;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function ansiToHtml(s) {
+    // basic: strip escape then colorise fg codes
+    return s.replace(/\x1b\[(\d+(?:;\d+)*)m/g, (_, codes) => {
+      const parts = codes.split(";");
+      let out = "";
+      parts.forEach((c) => {
+        const n = parseInt(c, 10);
+        if (n === 0) out += "</span>";
+        else out += '<span class="ansi-' + n + '">';
+      });
+      return out;
+    });
+  }
+
+  scrollBtn.addEventListener("click", () => {
+    autoScroll = !autoScroll;
+    scrollBtn.style.color = autoScroll ? "var(--accent)" : "var(--fg-muted)";
+    scrollBtn.setAttribute("aria-pressed", autoScroll);
+    if (autoScroll) pane.scrollTop = pane.scrollHeight;
+  });
+
+  copyBtn.addEventListener("click", () => {
+    navigator.clipboard.writeText(rawLines.join("\n")).then(() => {
+      window.showToast("Log copied to clipboard", "ok");
+    });
+  });
+
   const es = new EventSource("/api/runs/<%= run.id %>/log");
-  es.onmessage = (ev) => {
-    pane.textContent += ev.data + "\n";
-    pane.scrollTop = pane.scrollHeight;
-  };
+  es.onmessage = (ev) => appendLine(ev.data);
   es.addEventListener("end", (ev) => {
-    status.textContent = "finished (" + ev.data + ")";
+    dotEl.className = "status-dot " + (ev.data === "success" ? "ok" : "fail");
+    dotEl.style.animation = "none";
+    statusEl.innerHTML = '<span class="status-dot ' + (ev.data === "success" ? "ok" : "fail") + '" style="width:5px;height:5px;"></span> finished: ' + ev.data;
     es.close();
   });
-  es.onerror = () => { status.textContent = "disconnected"; es.close(); };
+  es.onerror = () => {
+    statusEl.textContent = "disconnected";
+    dotEl.style.display = "none";
+    es.close();
+  };
 })();
 </script>

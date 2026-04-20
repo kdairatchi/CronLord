@@ -18,6 +18,7 @@ module CronLord
         worker list
         worker rm <id>
         worker run --url URL --id ID --key KEY [--name N] [--lease 60] [--poll 5]
+        github sync                fetch jobs from configured GitHub repo and upsert
 
       options:
         -c, --config PATH          path to cronlord.toml (default: ./cronlord.toml)
@@ -34,6 +35,10 @@ module CronLord
         CRONLORD_LOG_TTL_DAYS      run log retention, 0=disable (default 30)
         CRONLORD_BLOCK_PRIVATE_NETS  1 = refuse RFC1918 / loopback targets
         CRONLORD_CLAUDE_CLI        override claude CLI name/path
+        CRONLORD_GITHUB_REPO       owner/repo for github sync
+        CRONLORD_GITHUB_BRANCH     branch (default main)
+        CRONLORD_GITHUB_PATH       file path in repo (default cronlord.toml)
+        CRONLORD_GITHUB_TOKEN      PAT for private repos
 
       worker run env (no DB needed):
         CRONLORD_URL, CRONLORD_WORKER_ID, CRONLORD_HMAC_KEY,
@@ -95,6 +100,7 @@ module CronLord
       when "job"             then cmd_job(cfg, rest[1..])
       when "runs"            then cmd_runs(rest[1..])
       when "worker"          then cmd_worker(rest[1..])
+      when "github"          then cmd_github(cfg, rest[1..])
       else
         STDERR.puts "unknown command: #{rest.first}"
         puts USAGE
@@ -346,6 +352,29 @@ module CronLord
         job.timezone = fj.timezone
         job.source = "toml"
         job.upsert
+      end
+    end
+
+    private def self.cmd_github(cfg : Config, argv : Array(String)) : Int32
+      case argv.first?
+      when "sync"
+        unless cfg.github.configured?
+          STDERR.puts "error: github repo not configured"
+          STDERR.puts "set CRONLORD_GITHUB_REPO=owner/repo or add [github] repo = \"owner/repo\" to cronlord.toml"
+          return 2
+        end
+        result = GithubSync.sync(cfg)
+        if result.ok?
+          puts "synced: #{result.imported} imported, #{result.updated} updated"
+        else
+          puts "synced with errors: #{result.imported} imported, #{result.updated} updated"
+          result.errors.each { |e| STDERR.puts "  error: #{e}" }
+          return 1
+        end
+        0
+      else
+        STDERR.puts "github subcommands: sync"
+        1
       end
     end
 

@@ -6,7 +6,7 @@
   <title><%= page_title %> | CronLord</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/base.css">
   <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
@@ -15,15 +15,57 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><span class="mark"></span> CronLord</div>
+    <div class="brand">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      </span>
+      CronLord
+    </div>
+
+    <div class="nav-section">Monitoring</div>
     <nav>
-      <a href="/" class="<%= nav_active == "overview" ? "active" : "" %>"><span class="dot"></span> Overview</a>
-      <a href="/jobs" class="<%= nav_active == "jobs" ? "active" : "" %>"><span class="dot"></span> Jobs</a>
-      <a href="/runs" class="<%= nav_active == "runs" ? "active" : "" %>"><span class="dot"></span> Runs</a>
-      <a href="/workers" class="<%= nav_active == "workers" ? "active" : "" %>"><span class="dot"></span> Workers</a>
-      <a href="/audit" class="<%= nav_active == "audit" ? "active" : "" %>"><span class="dot"></span> Audit</a>
-      <a href="/settings" class="<%= nav_active == "settings" ? "active" : "" %>"><span class="dot"></span> Settings</a>
+      <a href="/" class="<%= nav_active == "overview" ? "active" : "" %>">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </a>
+      <a href="/runs" class="<%= nav_active == "runs" ? "active" : "" %>">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Runs
+      </a>
+      <a href="/audit" class="<%= nav_active == "audit" ? "active" : "" %>">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Audit
+      </a>
     </nav>
+
+    <div class="nav-section">Jobs</div>
+    <nav>
+      <a href="/jobs" class="<%= nav_active == "jobs" ? "active" : "" %>">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Jobs
+      </a>
+      <a href="/workers" class="<%= nav_active == "workers" ? "active" : "" %>">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Workers
+      </a>
+      <a href="/github" class="<%= nav_active == "github" ? "active" : "" %>">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        GitHub
+      </a>
+    </nav>
+
+    <div class="nav-section">System</div>
+    <nav>
+      <a href="/doctor" class="<%= nav_active == "doctor" ? "active" : "" %>">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Doctor
+      </a>
+      <a href="/settings" class="<%= nav_active == "settings" ? "active" : "" %>">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+    </nav>
+
     <div class="spacer"></div>
     <div class="foot">
       <span>v<%= CronLord::VERSION %></span>
@@ -34,12 +76,15 @@
   <header class="topbar">
     <div class="title"><%= page_title %></div>
     <div class="actions">
-      <button class="ghost theme-toggle" id="theme-toggle" title="toggle theme" aria-label="toggle theme">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <button class="theme-toggle" id="theme-toggle" title="toggle theme" aria-label="toggle theme">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <span>theme</span>
       </button>
       <% if show_new_job %>
-        <a href="/jobs/new"><button class="primary">+ New job</button></a>
+        <a href="/jobs/new"><button class="primary">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-right:3px;vertical-align:-1px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New job
+        </button></a>
       <% end %>
     </div>
   </header>
@@ -49,18 +94,43 @@
   </main>
 </div>
 
+<div id="toast-container"></div>
+
 <script>
-  (function () {
-    const KEY = "cronlord-theme";
-    const saved = localStorage.getItem(KEY);
-    if (saved) document.documentElement.setAttribute("data-theme", saved);
-    document.getElementById("theme-toggle").addEventListener("click", () => {
-      const cur = document.documentElement.getAttribute("data-theme") || "light";
-      const next = cur === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      localStorage.setItem(KEY, next);
+(function () {
+  const KEY = "cronlord-theme";
+  const saved = localStorage.getItem(KEY);
+  if (saved) document.documentElement.setAttribute("data-theme", saved);
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme") || "light";
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem(KEY, next);
+  });
+
+  // dropdown menus
+  document.addEventListener("click", (e) => {
+    const trigger = e.target.closest("[data-dropdown]");
+    document.querySelectorAll(".dropdown-menu.open").forEach((m) => {
+      if (!trigger || m !== document.getElementById(trigger.dataset.dropdown)) {
+        m.classList.remove("open");
+      }
     });
-  })();
+    if (trigger) {
+      const menu = document.getElementById(trigger.dataset.dropdown);
+      if (menu) { e.stopPropagation(); menu.classList.toggle("open"); }
+    }
+  });
+
+  // toast helper (window-level so log viewer can call it)
+  window.showToast = function(msg, type) {
+    const t = document.createElement("div");
+    t.className = "toast " + (type || "ok");
+    t.textContent = msg;
+    document.getElementById("toast-container").appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  };
+})();
 </script>
 </body>
 </html>

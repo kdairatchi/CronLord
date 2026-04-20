@@ -11,6 +11,19 @@ port = 7070
 ## Generate one with: openssl rand -hex 32
 # admin_token = "replace-me-with-a-long-random-string"
 
+## GitHub integration. Controls both the webhook trigger and the job-sync feature.
+## Override any key with CRONLORD_GITHUB_* env vars.
+# [github]
+# webhook_secret = "replace-me-with-a-long-random-string"   # for POST /webhooks/github
+
+## Job-sync: fetch [[jobs]] from a remote TOML file and upsert into the DB.
+## Run `cronlord github sync` or POST /api/github/sync to trigger.
+# repo      = "owner/repo"          # required for sync
+# branch    = "main"
+# path      = "cronlord.toml"       # path within the repo
+# token     = "ghp_..."             # PAT; omit for public repos
+# auto_sync = false                 # not yet implemented; reserved
+
 [storage]
 ## Single directory that holds the SQLite DB and per-run logs.
 data_dir = "/var/lib/cronlord"

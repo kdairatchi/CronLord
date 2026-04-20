@@ -1,44 +1,82 @@
 <div class="grid cols-4">
-  <div class="card kpi"><div class="l">Enabled jobs</div><div class="v"><%= enabled_count %></div></div>
-  <div class="card kpi"><div class="l">Running now</div><div class="v"><%= running_count %></div></div>
-  <div class="card kpi"><div class="l">Runs 24h</div><div class="v"><%= runs_24h %></div></div>
-  <div class="card kpi"><div class="l">Fail rate 24h</div><div class="v"><%= fail_rate %></div></div>
+  <div class="card kpi">
+    <div class="kpi-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="kpi-inner">
+      <div class="l">Enabled jobs</div>
+      <div class="v"><%= enabled_count %></div>
+    </div>
+  </div>
+  <div class="card kpi">
+    <div class="kpi-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </div>
+    <div class="kpi-inner">
+      <div class="l">Running now</div>
+      <div class="v" style="<%= running_count.to_s != "0" ? "color:var(--info)" : "" %>"><%= running_count %></div>
+    </div>
+  </div>
+  <div class="card kpi">
+    <div class="kpi-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    <div class="kpi-inner">
+      <div class="l">Runs 24h</div>
+      <div class="v"><%= runs_24h %></div>
+    </div>
+  </div>
+  <div class="card kpi">
+    <div class="kpi-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <div class="kpi-inner">
+      <div class="l">Fail rate 24h</div>
+      <div class="v" style="<%= fail_rate != "0%" && fail_rate != "-" ? "color:var(--fail)" : "" %>"><%= fail_rate %></div>
+    </div>
+  </div>
 </div>
 
-<div class="grid cols-2" style="margin-top:18px;">
-  <div class="card">
-    <h3>Next fires</h3>
+<div class="grid cols-2" style="margin-top:16px;">
+  <div class="card" style="padding:0;">
+    <div style="padding:14px 18px 10px; border-bottom:var(--border); display:flex; align-items:center; justify-content:space-between;">
+      <h3 style="margin:0;">Next fires</h3>
+      <a href="/jobs" class="small muted" style="font-size:12px;">view all jobs →</a>
+    </div>
     <table class="table">
-      <thead><tr><th>When</th><th>Job</th><th>Cron</th></tr></thead>
+      <thead><tr><th>When</th><th>Job</th><th>Schedule</th></tr></thead>
       <tbody>
         <% next_fires.each do |(time, job)| %>
           <tr>
-            <td class="mono"><%= time.to_s("%F %H:%M") %></td>
+            <td class="mono"><%= time.to_s("%H:%M") %> <span class="muted" style="font-size:10px;"><%= time.to_s("%F") %></span></td>
             <td><a href="/jobs/<%= job.id %>"><%= job.name %></a></td>
-            <td class="mono"><%= job.schedule %></td>
+            <td><span class="badge mute"><%= job.schedule %></span></td>
           </tr>
         <% end %>
         <% if next_fires.empty? %>
-          <tr><td colspan="3" class="muted">No scheduled fires in horizon.</td></tr>
+          <tr><td colspan="3" class="muted" style="padding:28px;text-align:center;">No enabled jobs scheduled.</td></tr>
         <% end %>
       </tbody>
     </table>
   </div>
 
-  <div class="card">
-    <h3>Recent runs</h3>
+  <div class="card" style="padding:0;">
+    <div style="padding:14px 18px 10px; border-bottom:var(--border); display:flex; align-items:center; justify-content:space-between;">
+      <h3 style="margin:0;">Recent runs</h3>
+      <a href="/runs" class="small muted" style="font-size:12px;">view all runs →</a>
+    </div>
     <table class="table">
       <thead><tr><th>When</th><th>Job</th><th>Status</th></tr></thead>
       <tbody>
         <% recent_runs.each do |(run, job_name)| %>
           <tr>
-            <td class="mono"><%= run.started_at ? Time.unix(run.started_at.not_nil!).to_s("%F %H:%M") : "-" %></td>
+            <td class="mono"><%= run.started_at ? Time.unix(run.started_at.not_nil!).to_s("%H:%M:%S") : "-" %></td>
             <td><a href="/jobs/<%= run.job_id %>"><%= job_name %></a></td>
-            <td><span class="badge <%= status_class(run.status) %>"><%= run.status %></span></td>
+            <td><a href="/runs/<%= run.id %>"><span class="badge <%= status_class(run.status) %>"><%= run.status %></span></a></td>
           </tr>
         <% end %>
         <% if recent_runs.empty? %>
-          <tr><td colspan="3" class="muted">No runs yet.</td></tr>
+          <tr><td colspan="3" class="muted" style="padding:28px;text-align:center;">No runs yet.</td></tr>
         <% end %>
       </tbody>
     </table>

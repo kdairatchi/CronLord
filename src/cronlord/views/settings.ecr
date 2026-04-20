@@ -1,44 +1,362 @@
-<div class="grid cols-2">
-  <div class="card">
-    <h3>Server</h3>
-    <div class="small muted">Version</div>
-    <div class="mono"><%= CronLord::VERSION %></div>
-    <div class="small muted" style="margin-top:10px;">Listening</div>
-    <div class="mono"><%= cfg.listen_host %>:<%= cfg.listen_port %></div>
-    <div class="small muted" style="margin-top:10px;">Database</div>
-    <div class="mono"><%= cfg.db_path %></div>
-    <div class="small muted" style="margin-top:10px;">Logs</div>
-    <div class="mono"><%= cfg.log_dir %></div>
-  </div>
+<%
+  has_token   = !!cfg.admin_token
+  has_webhook = !!cfg.github_webhook_secret
+  has_sync    = cfg.github.configured?
+%>
 
-  <div class="card">
-    <h3>Auth</h3>
-    <% if cfg.admin_token %>
-      <p>Admin token configured. Include it as <code>Authorization: Bearer &lt;token&gt;</code> on API calls.</p>
-    <% else %>
-      <p>No admin token configured. Set <code>CRONLORD_ADMIN_TOKEN</code> to gate the API in production.</p>
-    <% end %>
+<!-- ── System info strip ── -->
+<div class="settings-section">
+  <div class="settings-section-header">
+    <div class="settings-section-icon icon-blue">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    </div>
+    <h3>System</h3>
+    <span class="badge ok" style="margin-left:auto;">v<%= CronLord::VERSION %></span>
   </div>
-
-  <div class="card" style="grid-column: 1 / -1;">
-    <h3>File-managed jobs</h3>
-    <% if cfg.file_jobs.empty? %>
-      <p class="muted">No <code>[[jobs]]</code> blocks defined in cronlord.toml.</p>
-    <% else %>
-      <table class="table">
-        <thead><tr><th>ID</th><th>Name</th><th>Schedule</th><th>Command</th></tr></thead>
-        <tbody>
-          <% cfg.file_jobs.each do |fj| %>
-            <tr>
-              <td class="mono"><%= fj.id %></td>
-              <td><%= fj.name %></td>
-              <td class="mono"><%= fj.schedule %></td>
-              <td class="mono"><%= fj.command %></td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-      <p class="small muted" style="margin-top:10px;">These are reconciled into the DB on every boot. Edit <code>cronlord.toml</code> to change them.</p>
-    <% end %>
+  <div class="setting-group">
+    <div class="setting-row">
+      <div class="setting-row-icon icon-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </div>
+      <div class="setting-row-body">
+        <div class="setting-row-label">Listening address</div>
+        <div class="setting-row-desc">Bind host and port</div>
+      </div>
+      <div class="setting-row-value mono"><%= cfg.listen_host %>:<%= cfg.listen_port %></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-row-icon icon-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      </div>
+      <div class="setting-row-body">
+        <div class="setting-row-label">Database</div>
+        <div class="setting-row-desc">SQLite — single file, no server needed</div>
+      </div>
+      <div class="setting-row-value mono"><%= cfg.db_path %></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-row-icon icon-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="setting-row-body">
+        <div class="setting-row-label">Run logs</div>
+        <div class="setting-row-desc">Per-run log files (auto-reaped)</div>
+      </div>
+      <div class="setting-row-value mono"><%= cfg.log_dir %></div>
+    </div>
   </div>
 </div>
+
+<!-- ── API Security ── -->
+<div class="settings-section">
+  <div class="settings-section-header">
+    <div class="settings-section-icon <%= has_token ? "icon-green" : "icon-amber" %>">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h3>API Security</h3>
+    <span class="badge <%= has_token ? "ok" : "warn" %>" style="margin-left:auto;">
+      <%= has_token ? "secured" : "open" %>
+    </span>
+  </div>
+
+  <% if has_token %>
+    <div class="setting-group">
+      <div class="setting-row">
+        <div class="setting-row-icon icon-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="setting-row-body">
+          <div class="setting-row-label">Admin token</div>
+          <div class="setting-row-desc">Set — <%= cfg.admin_token.not_nil!.size %> chars. Use <code>Authorization: Bearer &lt;token&gt;</code> on API calls.</div>
+        </div>
+        <span class="badge ok">active</span>
+      </div>
+    </div>
+  <% else %>
+    <div class="setup-guide">
+      <div class="setup-guide-header">
+        <div class="guide-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <h4>Set up API authentication</h4>
+        <span class="small muted" style="margin-left:auto;">optional while bound to localhost</span>
+      </div>
+      <div class="setup-guide-body">
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Generate a token</div>
+            <div class="step-desc">Create a cryptographically secure random token. Keep it secret.</div>
+            <div class="gen-row">
+              <input id="token-val" type="text" readonly placeholder="click Generate →" style="background:var(--bg-sunken);cursor:default;">
+              <button type="button" class="primary" onclick="genToken()">Generate</button>
+            </div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Apply via environment variable</div>
+            <div class="step-desc">Set before starting CronLord. The env var takes precedence over the config file.</div>
+            <div class="code-copy" id="env-snippet">export CRONLORD_ADMIN_TOKEN="&lt;your-token&gt;"
+<button class="copy-trigger" onclick="copyEl('env-snippet')">copy</button></div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Or add to cronlord.toml</div>
+            <div class="code-copy" id="toml-snippet">[server]
+admin_token = "&lt;your-token&gt;"
+<button class="copy-trigger" onclick="copyEl('toml-snippet')">copy</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- ── GitHub Webhook ── -->
+<div class="settings-section">
+  <div class="settings-section-header">
+    <div class="settings-section-icon <%= has_webhook ? "icon-green" : "icon-purple" %>">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+    </div>
+    <h3>GitHub Webhook</h3>
+    <span class="badge <%= has_webhook ? "ok" : "mute" %>" style="margin-left:auto;">
+      <%= has_webhook ? "enabled" : "not configured" %>
+    </span>
+  </div>
+
+  <% if has_webhook %>
+    <div class="setting-group">
+      <div class="setting-row">
+        <div class="setting-row-icon icon-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="setting-row-body">
+          <div class="setting-row-label">Secret configured</div>
+          <div class="setting-row-desc"><%= cfg.github_webhook_secret.not_nil!.size %> chars — HMAC-SHA256 verified on every event</div>
+        </div>
+        <span class="badge ok">active</span>
+      </div>
+      <div class="setting-row">
+        <div class="setting-row-icon icon-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <div class="setting-row-body">
+          <div class="setting-row-label">Webhook endpoint</div>
+          <div class="setting-row-desc">Point your GitHub repo → Settings → Webhooks here</div>
+        </div>
+        <div class="setting-row-value mono small">…/webhooks/github</div>
+      </div>
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <div class="setting-row-label" style="margin:0;">Full URL</div>
+        <div class="code-copy" id="wh-url" style="width:100%;">http://<%= cfg.listen_host %>:<%= cfg.listen_port %>/webhooks/github
+<button class="copy-trigger" onclick="copyEl('wh-url')">copy</button></div>
+        <div class="small muted">Content type: <code>application/json</code>. Jobs fire when their <code>category</code> = <code>github:&lt;event&gt;</code> (e.g. <code>github:push</code>) or labels include <code>github:owner/repo</code>.</div>
+      </div>
+    </div>
+  <% else %>
+    <div class="setup-guide">
+      <div class="setup-guide-header">
+        <div class="guide-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </div>
+        <h4>Set up GitHub → CronLord webhook</h4>
+      </div>
+      <div class="setup-guide-body">
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Generate a webhook secret</div>
+            <div class="step-desc">This shared secret lets CronLord verify that events really came from GitHub.</div>
+            <div class="gen-row">
+              <input id="wh-secret-val" type="text" readonly placeholder="click Generate →" style="background:var(--bg-sunken);cursor:default;">
+              <button type="button" class="primary" onclick="genWebhook()">Generate</button>
+            </div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Add to your config</div>
+            <div class="code-copy" id="wh-env">export CRONLORD_GITHUB_WEBHOOK_SECRET="&lt;your-secret&gt;"
+<button class="copy-trigger" onclick="copyEl('wh-env')">copy</button></div>
+            <div class="step-desc" style="margin-top:6px;">Or in cronlord.toml:</div>
+            <div class="code-copy" id="wh-toml">[github]
+webhook_secret = "&lt;your-secret&gt;"
+<button class="copy-trigger" onclick="copyEl('wh-toml')">copy</button></div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Add the webhook in GitHub</div>
+            <div class="step-desc">Go to your repo → <strong>Settings → Webhooks → Add webhook</strong>. Use these values:</div>
+            <div class="info-grid" style="background:var(--bg-sunken);border:var(--border);border-radius:var(--radius);padding:10px 14px;margin-top:4px;">
+              <span class="info-label">Payload URL</span>
+              <span class="info-value">http://<%= cfg.listen_host %>:<%= cfg.listen_port %>/webhooks/github</span>
+              <span class="info-label">Content type</span>
+              <span class="info-value">application/json</span>
+              <span class="info-label">Secret</span>
+              <span class="info-value">&lt;the secret you generated above&gt;</span>
+            </div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Tag your jobs</div>
+            <div class="step-desc">Set a job's <strong>Category</strong> to <code>github:push</code> (or any GitHub event name) to fire it when that event arrives. Use labels like <code>github:owner/repo</code> to scope to a specific repo.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- ── GitHub Sync ── -->
+<div class="settings-section">
+  <div class="settings-section-header">
+    <div class="settings-section-icon <%= has_sync ? "icon-green" : "icon-purple" %>">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </div>
+    <h3>GitHub Job Sync</h3>
+    <span class="badge <%= has_sync ? "ok" : "mute" %>" style="margin-left:auto;">
+      <%= has_sync ? "configured" : "not configured" %>
+    </span>
+  </div>
+
+  <% if has_sync %>
+    <div class="setting-group">
+      <div class="setting-row">
+        <div class="setting-row-icon icon-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        </div>
+        <div class="setting-row-body">
+          <div class="setting-row-label"><%= cfg.github.repo %></div>
+          <div class="setting-row-desc"><%= cfg.github.branch %> / <%= cfg.github.path %></div>
+        </div>
+        <span class="badge <%= cfg.github.token ? "ok" : "mute" %>"><%= cfg.github.token ? "private" : "public" %></span>
+      </div>
+      <div class="setting-row" style="justify-content:flex-end;gap:10px;">
+        <a href="/github"><button class="ghost">View sync page →</button></a>
+      </div>
+    </div>
+  <% else %>
+    <div class="setup-guide">
+      <div class="setup-guide-header">
+        <div class="guide-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </div>
+        <h4>Sync jobs from a GitHub repository</h4>
+      </div>
+      <div class="setup-guide-body">
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Create a <code>cronlord.toml</code> in your repo</div>
+            <div class="step-desc">Add a <code>[[jobs]]</code> section for each job you want CronLord to manage.</div>
+            <div class="code-copy">[[jobs]]
+id       = "my-job"
+name     = "My scheduled task"
+schedule = "0 9 * * 1-5"
+command  = "./scripts/run.sh"
+kind     = "shell"</div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Configure CronLord to watch that repo</div>
+            <div class="code-copy" id="sync-env">export CRONLORD_GITHUB_REPO="owner/repo"
+export CRONLORD_GITHUB_BRANCH="main"
+export CRONLORD_GITHUB_PATH="cronlord.toml"
+# export CRONLORD_GITHUB_TOKEN="ghp_..."   # private repos only
+<button class="copy-trigger" onclick="copyEl('sync-env')">copy</button></div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Trigger a sync</div>
+            <div class="step-desc">Once configured, visit the <a href="/github">GitHub page</a> to sync jobs, or run <code>cronlord github sync</code> from the CLI. Combine with a webhook trigger (above) to auto-sync on every push.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- ── File-managed jobs ── -->
+<% unless cfg.file_jobs.empty? %>
+<div class="settings-section">
+  <div class="settings-section-header">
+    <div class="settings-section-icon icon-blue">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+    </div>
+    <h3>File-managed jobs</h3>
+    <span class="badge mute" style="margin-left:auto;"><%= cfg.file_jobs.size %> from cronlord.toml</span>
+  </div>
+  <div class="setting-group">
+    <table class="table" style="margin:0;">
+      <thead><tr><th>ID</th><th>Name</th><th>Schedule</th><th>Command</th></tr></thead>
+      <tbody>
+        <% cfg.file_jobs.each do |fj| %>
+          <tr>
+            <td class="mono small"><%= fj.id %></td>
+            <td><a href="/jobs/<%= fj.id %>"><%= fj.name %></a></td>
+            <td class="mono small"><%= fj.schedule %></td>
+            <td class="mono small" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= fj.command %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <div class="small muted" style="padding:10px 16px;">Reconciled from <code>cronlord.toml</code> on every boot. Edit the file to change them.</div>
+  </div>
+</div>
+<% end %>
+
+<script>
+(function () {
+  function randHex(n) {
+    const arr = new Uint8Array(n);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  window.genToken = function () {
+    const v = randHex(32);
+    const el = document.getElementById("token-val");
+    el.value = v;
+    document.getElementById("env-snippet").childNodes[0].textContent =
+      'export CRONLORD_ADMIN_TOKEN="' + v + '"\n';
+    document.getElementById("toml-snippet").childNodes[0].textContent =
+      '[server]\nadmin_token = "' + v + '"\n';
+  };
+
+  window.genWebhook = function () {
+    const v = randHex(32);
+    const el = document.getElementById("wh-secret-val");
+    if (el) {
+      el.value = v;
+      document.getElementById("wh-env").childNodes[0].textContent =
+        'export CRONLORD_GITHUB_WEBHOOK_SECRET="' + v + '"\n';
+      document.getElementById("wh-toml").childNodes[0].textContent =
+        '[github]\nwebhook_secret = "' + v + '"\n';
+    }
+  };
+
+  window.copyEl = function (id) {
+    const el = document.getElementById(id);
+    const text = Array.from(el.childNodes)
+      .filter(n => n.nodeType === Node.TEXT_NODE)
+      .map(n => n.textContent)
+      .join("").trim();
+    navigator.clipboard.writeText(text).then(() => {
+      window.showToast("Copied to clipboard", "ok");
+    });
+  };
+})();
+</script>

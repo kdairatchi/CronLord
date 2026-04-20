@@ -1,6 +1,7 @@
 require "kemal"
 require "json"
 require "ecr"
+require "openssl/hmac"
 
 module CronLord
   # HTTP + WebSocket + server-rendered UI. The UI is intentionally simple -
@@ -236,6 +237,20 @@ module CronLord
         {"ok" => true}.to_json
       end
 
+      post "/api/github/sync" do |env|
+        next unless require_token(env, cfg)
+        unless cfg.github.configured?
+          env.response.status_code = 422
+          env.response.content_type = "application/json"
+          next({"error" => "github not configured"}.to_json)
+        end
+        result = GithubSync.sync(cfg)
+        sched.kick if result.total > 0
+        env.response.content_type = "application/json"
+        env.response.status_code = result.ok? ? 200 : 207
+        result.to_json
+      end
+
       # Cron explain - powers the live preview in the job editor.
       get "/api/cron/explain" do |env|
         env.response.content_type = "application/json"
@@ -261,6 +276,69 @@ module CronLord
           env.response.status_code = 400
           {"ok" => false, "error" => "unknown timezone: #{tz_name}"}.to_json
         end
+      end
+
+      # ---- GitHub webhook trigger -----------------------------------------
+      # Verifies X-Hub-Signature-256, then fires any enabled job whose
+      # category == "github:<event>" or whose labels include "github:<repo>".
+      # HMAC check is intentionally first — no DB work on unauthenticated calls.
+      post "/webhooks/github" do |env|
+        secret = cfg.github_webhook_secret
+        unless secret
+          env.response.status_code = 503
+          env.response.content_type = "application/json"
+          next({"error" => "webhook secret not configured"}.to_json)
+        end
+
+        body = env.request.body.try(&.gets_to_end) || ""
+
+        sig_header = env.request.headers["X-Hub-Signature-256"]?
+        unless sig_header
+          env.response.status_code = 400
+          env.response.content_type = "application/json"
+          next({"error" => "missing X-Hub-Signature-256"}.to_json)
+        end
+
+        expected = "sha256=" + OpenSSL::HMAC.hexdigest(:sha256, secret, body)
+        unless sig_header == expected
+          env.response.status_code = 401
+          env.response.content_type = "application/json"
+          next({"error" => "signature mismatch"}.to_json)
+        end
+
+        event = env.request.headers["X-GitHub-Event"]? || "push"
+
+        payload = begin
+          JSON.parse(body)
+        rescue JSON::ParseException
+          env.response.status_code = 400
+          env.response.content_type = "application/json"
+          next({"error" => "invalid JSON body"}.to_json)
+        end
+
+        repo = payload["repository"]?.try(&.["full_name"]?).try(&.as_s?) || ""
+
+        category_tag = "github:#{event}"
+        repo_label = "github:#{repo}"
+
+        matched = Job.all.select do |job|
+          next false unless job.enabled
+          job.category == category_tag || job.labels.includes?(repo_label)
+        end
+
+        triggered_ids = matched.map do |job|
+          run = sched.trigger_now(job, trigger: "webhook:github")
+          Audit.write("job.run", actor: "webhook:github", target: "job:#{job.id}",
+            meta: {
+              "run_id" => JSON::Any.new(run.id),
+              "event"  => JSON::Any.new(event),
+              "repo"   => JSON::Any.new(repo),
+            })
+          job.id
+        end
+
+        env.response.content_type = "application/json"
+        {"triggered" => triggered_ids.size, "jobs" => triggered_ids}.to_json
       end
     end
 
@@ -477,12 +555,65 @@ module CronLord
         render "src/cronlord/views/audit.ecr", "src/cronlord/views/layout.ecr"
       end
 
+      get "/doctor" do |env|
+        page_title = "Doctor"
+        nav_active = "doctor"
+        show_new_job = false
+        theme = "light"
+        checks = Doctor.collect_public(config)
+        render "src/cronlord/views/doctor.ecr", "src/cronlord/views/layout.ecr"
+      end
+
+      get "/api/doctor" do |env|
+        env.response.content_type = "application/json"
+        checks = Doctor.collect_public(config)
+        rows = checks.map do |c|
+          {"name" => c.name, "status" => c.status.to_s.downcase, "detail" => c.detail}
+        end
+        {"version" => CronLord::VERSION, "checks" => rows}.to_json
+      end
+
       get "/settings" do |env|
         page_title = "Settings"
         nav_active = "settings"
         show_new_job = false
         theme = "light"
         render "src/cronlord/views/settings.ecr", "src/cronlord/views/layout.ecr"
+      end
+
+      # ---- GitHub sync UI ------------------------------------------------
+
+      get "/github" do |env|
+        page_title = "GitHub Sync"
+        nav_active = "github"
+        show_new_job = false
+        theme = "light"
+        github_jobs = Job.all.select { |j| j.source == "github" }
+        last_sync = nil.as(GithubSync::Result?)
+        render "src/cronlord/views/github.ecr", "src/cronlord/views/layout.ecr"
+      end
+
+      post "/github/sync" do |env|
+        unless cfg.github.configured?
+          env.response.headers["Location"] = "/github"
+          env.response.status_code = 303
+          next
+        end
+        result = GithubSync.sync(cfg)
+        sched.kick if result.total > 0
+        Audit.write("github.sync", actor: "ui",
+          meta: {
+            "imported" => JSON::Any.new(result.imported.to_i64),
+            "updated"  => JSON::Any.new(result.updated.to_i64),
+            "errors"   => JSON::Any.new(result.errors.size.to_i64),
+          })
+        last_sync = result
+        page_title = "GitHub Sync"
+        nav_active = "github"
+        show_new_job = false
+        theme = "light"
+        github_jobs = Job.all.select { |j| j.source == "github" }
+        render "src/cronlord/views/github.ecr", "src/cronlord/views/layout.ecr"
       end
 
       # ---- Workers UI ----------------------------------------------------

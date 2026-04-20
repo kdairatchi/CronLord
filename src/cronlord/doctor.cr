@@ -31,6 +31,11 @@ module CronLord
       exit_code(checks)
     end
 
+    # Public accessor for web UI and API.
+    def collect_public(cfg : Config) : Array(Check)
+      collect(cfg)
+    end
+
     private def collect(cfg : Config) : Array(Check)
       [
         check_binary,
@@ -45,6 +50,7 @@ module CronLord
         check_admin_token(cfg),
         check_private_nets,
         check_claude_cli,
+        check_github_webhook(cfg),
       ]
     end
 
@@ -221,6 +227,24 @@ module CronLord
       end
     rescue ex
       Check.new("claude_cli", Status::Warn, "check failed: #{ex.message}")
+    end
+
+    private def check_github_webhook(cfg : Config) : Check
+      count = DB.conn.scalar(
+        "SELECT count(*) FROM jobs WHERE category LIKE 'github:%' AND enabled=1"
+      ).as(Int64)
+      if count == 0
+        return Check.new("github_webhook", Status::OK, "no github-category jobs - not configured")
+      end
+      if cfg.github_webhook_secret
+        Check.new("github_webhook", Status::OK,
+          "secret set, #{count} job(s) match github:* category")
+      else
+        Check.new("github_webhook", Status::Warn,
+          "#{count} job(s) have github:* category but CRONLORD_GITHUB_WEBHOOK_SECRET is unset")
+      end
+    rescue ex
+      Check.new("github_webhook", Status::Warn, "check failed: #{ex.message}")
     end
 
     # --- helpers ---

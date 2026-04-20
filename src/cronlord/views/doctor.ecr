@@ -1,0 +1,78 @@
+<%
+  ok_count   = checks.count { |c| c.status.to_s == "OK" }
+  warn_count = checks.count { |c| c.status.to_s == "Warn" }
+  fail_count = checks.count { |c| c.status.to_s == "Fail" }
+  overall_status = fail_count > 0 ? "fail" : (warn_count > 0 ? "warn" : "ok")
+%>
+
+<div class="toolbar">
+  <div class="row" style="gap:10px;">
+    <% if overall_status == "ok" %>
+      <span class="badge ok">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        All systems go
+      </span>
+    <% elsif overall_status == "warn" %>
+      <span class="badge warn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Warnings present
+      </span>
+    <% else %>
+      <span class="badge fail">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Failures detected
+      </span>
+    <% end %>
+  </div>
+  <div style="flex:1"></div>
+  <a href="/doctor"><button class="ghost">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:3px;vertical-align:-1px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    Re-run checks
+  </button></a>
+</div>
+
+<div class="card" style="padding:0;">
+  <div class="check-list">
+    <% checks.each do |check| %>
+      <% s = check.status.to_s %>
+      <div class="check-item">
+        <div class="check-status">
+          <% if s == "OK" %>
+            <span class="badge ok" style="padding:2px 6px;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              ok
+            </span>
+          <% elsif s == "Warn" %>
+            <span class="badge warn" style="padding:2px 6px;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              warn
+            </span>
+          <% else %>
+            <span class="badge fail" style="padding:2px 6px;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              fail
+            </span>
+          <% end %>
+        </div>
+        <div class="check-name"><%= check.name %></div>
+        <div class="check-detail"><%= check.detail %></div>
+      </div>
+    <% end %>
+  </div>
+  <div class="check-summary">
+    <div class="cs-item">
+      <span class="status-dot ok"></span>
+      <span class="muted small"><%= ok_count %> passed</span>
+    </div>
+    <div class="cs-item">
+      <span class="status-dot warn"></span>
+      <span class="muted small"><%= warn_count %> warnings</span>
+    </div>
+    <div class="cs-item">
+      <span class="status-dot fail"></span>
+      <span class="muted small"><%= fail_count %> failed</span>
+    </div>
+    <div style="flex:1"></div>
+    <span class="small muted mono">cronlord v<%= CronLord::VERSION %></span>
+  </div>
+</div>
