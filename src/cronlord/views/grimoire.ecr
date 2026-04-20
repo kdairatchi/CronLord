@@ -1,0 +1,182 @@
+<% unless grimoire_present %>
+<!-- ── Not configured ── -->
+<div class="settings-section">
+  <div class="settings-section-header">
+    <div class="settings-section-icon icon-purple">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    </div>
+    <h3>Grimoire not found</h3>
+    <span class="badge warn" style="margin-left:auto;">not configured</span>
+  </div>
+  <div class="setup-guide">
+    <div class="setup-guide-header">
+      <div class="guide-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <h4>Connect the cronlord-grimoire to unlock 55+ ready-made rituals</h4>
+    </div>
+    <div class="setup-guide-body">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Clone the grimoire</div>
+          <div class="step-desc">Put it next to your CronLord directory — it auto-detects from there.</div>
+          <div class="code-copy" id="clone-cmd">git clone https://github.com/kdairatchi/cronlord-grimoire ~/cronlord-grimoire
+<button class="copy-trigger" onclick="copyEl('clone-cmd')">copy</button></div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Or point CronLord at an existing clone</div>
+          <div class="code-copy" id="env-cmd">export CRONLORD_GRIMOIRE_PATH="/path/to/cronlord-grimoire"
+<button class="copy-trigger" onclick="copyEl('env-cmd')">copy</button></div>
+          <div class="step-desc" style="margin-top:6px;">Or add to <code>cronlord.toml</code>:</div>
+          <div class="code-copy" id="toml-cmd">[grimoire]
+path = "/path/to/cronlord-grimoire"
+<button class="copy-trigger" onclick="copyEl('toml-cmd')">copy</button></div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Restart CronLord</div>
+          <div class="step-desc">The grimoire is scanned at startup. Reload this page once it's running.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<% else %>
+
+<!-- ── Grimoire header strip ── -->
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+  <div style="flex:1;">
+    <div class="small muted"><%= rituals_by_cat.values.sum(&.size) %> rituals across <%= rituals_by_cat.size %> categories — click Install to add to your scheduler</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <input id="grimoire-filter" type="search" placeholder="Filter rituals…"
+      style="height:30px;padding:0 10px;border:var(--border);border-radius:var(--radius);background:var(--bg-sunken);color:var(--fg);font-size:12px;width:180px;"
+      oninput="filterRituals(this.value)">
+  </div>
+</div>
+
+<!-- ── Category sections ── -->
+<% rituals_by_cat.each do |cat, rituals| %>
+<div class="settings-section ritual-category" data-cat="<%= cat %>">
+  <div class="settings-section-header">
+    <div class="settings-section-icon <%= category_icon_class(cat) %>">
+      <%= category_icon_svg(cat) %>
+    </div>
+    <h3 style="text-transform:capitalize;"><%= cat %></h3>
+    <span class="badge mute" style="margin-left:auto;"><%= rituals.size %></span>
+  </div>
+  <div class="setting-group">
+    <% rituals.each do |r| %>
+    <%   installed = installed_ids.includes?(r.id) %>
+    <div class="ritual-row" data-ritual-id="<%= r.id %>"
+         data-name="<%= r.name.downcase %>"
+         data-cat="<%= cat %>"
+         data-path="<%= r.file_path %>">
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:var(--border);">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-weight:500;font-size:13px;"><%= r.name %></span>
+            <span class="badge mute" style="font-family:var(--mono);font-size:10px;"><%= r.kind %></span>
+            <% if installed %>
+              <span class="badge ok" style="font-size:10px;">installed</span>
+            <% end %>
+          </div>
+          <% unless r.description.empty? %>
+            <div class="small muted" style="margin-top:3px;"><%= r.description %></div>
+          <% end %>
+          <div style="margin-top:5px;display:flex;gap:12px;align-items:center;">
+            <span class="mono small muted"><%= r.schedule %></span>
+            <% unless r.timezone == "UTC" %>
+              <span class="small muted"><%= r.timezone %></span>
+            <% end %>
+            <% if r.timeout_sec > 0 %>
+              <span class="small muted">timeout <%= r.timeout_sec %>s</span>
+            <% end %>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          <% if installed %>
+            <a href="/jobs/<%= r.id %>"><button class="ghost" style="font-size:12px;padding:4px 10px;">view</button></a>
+            <button class="ghost ritual-install-btn" style="font-size:12px;padding:4px 10px;"
+                    data-path="<%= r.file_path %>" data-id="<%= r.id %>">reinstall</button>
+          <% else %>
+            <button class="primary ritual-install-btn" style="font-size:12px;padding:4px 10px;"
+                    data-path="<%= r.file_path %>" data-id="<%= r.id %>">Install</button>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
+<% end %>
+
+<script>
+(function () {
+  // Install handler
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".ritual-install-btn");
+    if (!btn) return;
+    const path = btn.dataset.path;
+    const id   = btn.dataset.id;
+    btn.disabled = true;
+    btn.textContent = "…";
+    try {
+      const fd = new FormData();
+      fd.append("path", path);
+      const res = await fetch("/grimoire/install", { method: "POST", body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        const row = btn.closest(".ritual-row");
+        // swap button area
+        const actions = btn.parentElement;
+        actions.innerHTML =
+          '<a href="/jobs/' + id + '"><button class="ghost" style="font-size:12px;padding:4px 10px;">view</button></a>' +
+          '<button class="ghost ritual-install-btn" style="font-size:12px;padding:4px 10px;" data-path="' + path + '" data-id="' + id + '">reinstall</button>';
+        // add installed badge if not already there
+        const nameRow = row.querySelector("div > span:first-child").parentElement;
+        if (!nameRow.querySelector(".badge.ok")) {
+          const badge = document.createElement("span");
+          badge.className = "badge ok";
+          badge.style.fontSize = "10px";
+          badge.textContent = "installed";
+          nameRow.appendChild(badge);
+        }
+        window.showToast(data.existed ? "Reinstalled: " + id : "Installed: " + id, "ok");
+      } else {
+        btn.disabled = false;
+        btn.textContent = "Install";
+        window.showToast("Error: " + (data.error || res.status), "fail");
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "Install";
+      window.showToast("Network error", "fail");
+    }
+  });
+
+  // Filter
+  window.filterRituals = function (q) {
+    q = q.toLowerCase().trim();
+    document.querySelectorAll(".ritual-row").forEach((row) => {
+      const name = row.dataset.name || "";
+      const cat  = row.dataset.cat  || "";
+      const show = !q || name.includes(q) || cat.includes(q);
+      row.style.display = show ? "" : "none";
+    });
+    // hide category sections that have no visible rows
+    document.querySelectorAll(".ritual-category").forEach((section) => {
+      const visible = section.querySelectorAll(".ritual-row:not([style*='display: none'])").length;
+      section.style.display = visible ? "" : "none";
+    });
+  };
+})();
+</script>

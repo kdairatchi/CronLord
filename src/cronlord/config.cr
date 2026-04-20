@@ -16,6 +16,7 @@ module CronLord
     getter session_secret : String?
     getter github_client_id : String?
     getter github_client_secret : String?
+    getter grimoire_path : String?
 
     DEFAULT_PATH = "cronlord.toml"
 
@@ -65,7 +66,8 @@ module CronLord
                    @github = GithubConfig.new,
                    @session_secret = nil.as(String?),
                    @github_client_id = nil.as(String?),
-                   @github_client_secret = nil.as(String?))
+                   @github_client_secret = nil.as(String?),
+                   @grimoire_path = nil.as(String?))
     end
 
     def oauth_configured? : Bool
@@ -99,6 +101,19 @@ module CronLord
       github_client_secret = ENV["CRONLORD_GITHUB_CLIENT_SECRET"]? ||
         doc["github"]?.try(&.as_h?).try { |h| h["client_secret"]?.try(&.as_s?) }
 
+      grimoire_section = doc["grimoire"]?.try(&.as_h?) || TOML::Table.new
+      grimoire_path = ENV["CRONLORD_GRIMOIRE_PATH"]? ||
+        grimoire_section["path"]?.try(&.as_s?)
+      # auto-detect adjacent grimoire directory if not explicitly set
+      if grimoire_path.nil?
+        candidates = [
+          File.join(Dir.current, "..", "cronlord-grimoire"),
+          File.join(Dir.current, "cronlord-grimoire"),
+          File.expand_path("~/cronlord-grimoire"),
+        ]
+        grimoire_path = candidates.find { |p| Dir.exists?(File.join(p, "rituals")) }
+      end
+
       jobs = parse_file_jobs(doc["jobs"]?)
 
       gh_section = doc["github"]?.try(&.as_h?) || TOML::Table.new
@@ -124,6 +139,7 @@ module CronLord
         session_secret:        session_secret,
         github_client_id:      github_client_id,
         github_client_secret:  github_client_secret,
+        grimoire_path:         grimoire_path,
       )
     end
 

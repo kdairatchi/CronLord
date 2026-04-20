@@ -5,6 +5,7 @@ require "openssl/hmac"
 require "uri/params"
 require "base64"
 require "crypto/subtle"
+require "./grimoire_loader"
 
 module CronLord
   # HTTP + WebSocket + server-rendered UI. The UI is intentionally simple -
@@ -865,6 +866,87 @@ module CronLord
           Audit.write("worker.delete", actor: "ui", target: "worker:#{id}", meta: {} of String => JSON::Any)
         end
         env.redirect "/workers"
+      end
+
+      # ---- Grimoire ----------------------------------------------------------
+
+      get "/grimoire" do |env|
+        if cfg.oauth_configured?
+          current_user = resolve_session.call(env)
+          next env.redirect("/auth/github") unless current_user
+        else
+          current_user = nil.as(Auth::Session?)
+        end
+        page_title = "Grimoire"
+        nav_active = "grimoire"
+        show_new_job = false
+        theme = "light"
+
+        gp = cfg.grimoire_path
+        grimoire_present = GrimoireLoader.present?(gp)
+        rituals_by_cat = grimoire_present && gp ? GrimoireLoader.load(gp) : {} of String => Array(GrimoireLoader::Ritual)
+        installed_ids = Job.all.map(&.id).to_set
+
+        render "src/cronlord/views/grimoire.ecr", "src/cronlord/views/layout.ecr"
+      end
+
+      # Install a single ritual by its relative file path within the grimoire.
+      # Returns JSON so the page JS can update the button state without a reload.
+      post "/grimoire/install" do |env|
+        if cfg.oauth_configured?
+          next env.redirect("/auth/github") unless resolve_session.call(env)
+        end
+        env.response.content_type = "application/json"
+
+        gp = cfg.grimoire_path
+        unless gp && GrimoireLoader.present?(gp)
+          env.response.status_code = 503
+          next({"error" => "grimoire not found"}.to_json)
+        end
+
+        rel_path = env.params.body["path"]?.to_s.strip
+        if rel_path.empty?
+          env.response.status_code = 400
+          next({"error" => "path required"}.to_json)
+        end
+
+        ritual = GrimoireLoader.load_one(gp, rel_path)
+        unless ritual
+          env.response.status_code = 404
+          next({"error" => "ritual not found or invalid path"}.to_json)
+        end
+
+        h = {
+          "id"          => JSON::Any.new(ritual.id),
+          "name"        => JSON::Any.new(ritual.name),
+          "description" => JSON::Any.new(ritual.description),
+          "category"    => JSON::Any.new(ritual.category),
+          "schedule"    => JSON::Any.new(ritual.schedule),
+          "command"     => JSON::Any.new(ritual.command),
+          "kind"        => JSON::Any.new(ritual.kind),
+          "enabled"     => JSON::Any.new(ritual.enabled),
+          "timezone"    => JSON::Any.new(ritual.timezone),
+          "timeout_sec" => JSON::Any.new(ritual.timeout_sec.to_i64),
+          "source"      => JSON::Any.new("grimoire"),
+        }
+        job = build_job(h)
+        unless job
+          env.response.status_code = 422
+          next({"error" => "could not build job from ritual"}.to_json)
+        end
+
+        existed = !Job.find(job.id).nil?
+        job.upsert
+        Audit.write(existed ? "job.update" : "job.create", actor: "grimoire",
+          target: "job:#{job.id}",
+          meta: {
+            "name"   => JSON::Any.new(job.name),
+            "ritual" => JSON::Any.new(rel_path),
+          })
+        sched.kick
+
+        env.response.status_code = existed ? 200 : 201
+        {"ok" => true, "id" => job.id, "existed" => existed}.to_json
       end
     end
 

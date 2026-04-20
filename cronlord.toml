@@ -1,6 +1,10 @@
 [server]
 host = "127.0.0.1"
 port = 7070
+# admin_token — set via CRONLORD_ADMIN_TOKEN env var (openssl rand -hex 32)
+
+[github]
+# webhook_secret — set via CRONLORD_GITHUB_WEBHOOK_SECRET env var (openssl rand -hex 32)
 
 [storage]
 data_dir = "var"
