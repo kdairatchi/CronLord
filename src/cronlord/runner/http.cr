@@ -13,6 +13,7 @@ module CronLord
     class Http
       MAX_BODY_BYTES  = 32_768
       DEFAULT_TIMEOUT =     30
+      MAX_REDIRECTS   =      5
 
       struct Request
         getter method : String
@@ -20,7 +21,7 @@ module CronLord
         getter headers : Hash(String, String)
         getter body : String?
         getter expect_status : Int32?
-        getter follow_redirects : Bool
+        getter? follow_redirects : Bool
 
         def initialize(@method, @url, @headers = {} of String => String,
                        @body = nil, @expect_status = nil, @follow_redirects = true)
@@ -70,14 +71,7 @@ module CronLord
 
         started = Time.instant
         begin
-          client = HttpGuard.safe_client(uri, timeout)
-
-          headers = HTTP::Headers.new
-          req.headers.each { |k, v| headers[k] = v }
-          headers["User-Agent"] = "CronLord/#{VERSION}" unless headers.has_key?("User-Agent")
-
-          response = client.exec(method: req.method, path: HttpGuard.request_path(uri),
-            headers: headers, body: req.body)
+          response = execute(req, uri, timeout, buffer)
 
           status = response.status_code
           body = response.body? || ""
@@ -110,6 +104,54 @@ module CronLord
       private def self.matches_expected?(actual : Int32, expected : Int32?) : Bool
         return actual >= 200 && actual < 300 if expected.nil?
         actual == expected
+      end
+
+      private def self.execute(req : Request, uri : URI, timeout : Int32,
+                               buffer : LogBuffer) : HTTP::Client::Response
+        current = uri
+        method = req.method
+        body = req.body
+        redirects = 0
+
+        loop do
+          client = HttpGuard.safe_client(current, timeout)
+          headers = HTTP::Headers.new
+          req.headers.each { |k, v| headers[k] = v }
+          headers["User-Agent"] = "CronLord/#{VERSION}" unless headers.has_key?("User-Agent")
+
+          response = begin
+            client.exec(method: method, path: HttpGuard.request_path(current),
+              headers: headers, body: body)
+          ensure
+            client.close
+          end
+
+          return response unless req.follow_redirects? && redirect?(response.status_code)
+
+          location = response.headers["Location"]?
+          return response if location.nil? || location.empty?
+
+          redirects += 1
+          if redirects > MAX_REDIRECTS
+            buffer.write("[redirect limit exceeded after #{MAX_REDIRECTS} hops]", :meta)
+            return response
+          end
+
+          next_uri = current.resolve(location)
+          current = HttpGuard.validate!(next_uri.to_s)
+          buffer.write("redirect #{response.status_code} -> #{current}", :meta)
+
+          if response.status_code == 303 ||
+             ((response.status_code == 301 || response.status_code == 302) &&
+             method != "GET" && method != "HEAD")
+            method = "GET"
+            body = nil
+          end
+        end
+      end
+
+      private def self.redirect?(status : Int32) : Bool
+        status == 301 || status == 302 || status == 303 || status == 307 || status == 308
       end
     end
   end
