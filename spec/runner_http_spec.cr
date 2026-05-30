@@ -24,6 +24,21 @@ private def fresh_run(job_id : String) : {CronLord::Run, CronLord::LogBuffer, St
 end
 
 describe CronLord::Runner::Http do
+  describe CronLord::Runner::Http::Request do
+    it "defaults to following redirects" do
+      req = CronLord::Runner::Http::Request.parse({"url" => "https://example.com"}.to_json)
+      req.follow_redirects?.should be_true
+    end
+
+    it "can disable redirects" do
+      req = CronLord::Runner::Http::Request.parse({
+        "url"    => "https://example.com",
+        "follow" => false,
+      }.to_json)
+      req.follow_redirects?.should be_false
+    end
+  end
+
   it "marks success on 200" do
     url, server = with_server ->(ctx : HTTP::Server::Context) {
       ctx.response.status_code = 200
@@ -68,6 +83,28 @@ describe CronLord::Runner::Http do
       run, buf, _ = fresh_run(job.id)
       CronLord::Runner::Http.run(job, run, buf)
       run.status.should eq "success"
+    ensure
+      server.close
+    end
+  end
+
+  it "follows guarded redirects by default" do
+    url, server = with_server ->(ctx : HTTP::Server::Context) {
+      if ctx.request.path == "/start"
+        ctx.response.status_code = 302
+        ctx.response.headers["Location"] = "/done"
+      else
+        ctx.response.status_code = 200
+        ctx.response.print("redirected")
+      end
+    }
+    begin
+      job = fresh_job("http-redirect", "#{url}/start")
+      run, buf, path = fresh_run(job.id)
+      code = CronLord::Runner::Http.run(job, run, buf)
+      code.should eq 200
+      run.status.should eq "success"
+      File.read(path).should contain("redirect 302")
     ensure
       server.close
     end

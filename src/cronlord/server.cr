@@ -304,7 +304,7 @@ module CronLord
         end
 
         expected = "sha256=" + OpenSSL::HMAC.hexdigest(:sha256, secret, body)
-        unless sig_header == expected
+        unless Auth::Hmac.secure_compare(expected, sig_header)
           env.response.status_code = 401
           env.response.content_type = "application/json"
           next({"error" => "signature mismatch"}.to_json)
@@ -970,10 +970,11 @@ module CronLord
     end
 
     private def require_token(env, cfg : Config) : Bool
-      return true if cfg.admin_token.nil?
+      expected = cfg.admin_token
+      return true if expected.nil?
       presented = env.request.headers["Authorization"]?.try(&.sub(/^Bearer\s+/i, ""))
       presented ||= env.params.query["token"]?
-      if presented == cfg.admin_token
+      if Auth::Hmac.secure_compare(expected, presented)
         true
       else
         env.response.status_code = 401

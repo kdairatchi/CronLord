@@ -18,6 +18,16 @@ describe CronLord::Auth::Hmac do
     CronLord::Auth::Hmac.verify?("wrong", "body", ts, sig).should be_false
   end
 
+  it "securely compares equal strings" do
+    CronLord::Auth::Hmac.secure_compare("abc123", "abc123").should be_true
+  end
+
+  it "securely rejects nil, mismatched, and different-length strings" do
+    CronLord::Auth::Hmac.secure_compare("abc123", nil).should be_false
+    CronLord::Auth::Hmac.secure_compare("abc123", "abc124").should be_false
+    CronLord::Auth::Hmac.secure_compare("abc123", "abc1234").should be_false
+  end
+
   it "rejects stale timestamps outside skew window" do
     now = Time.utc.to_unix
     old = now - 3600

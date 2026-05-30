@@ -24,6 +24,12 @@ module CronLord
         OpenSSL::HMAC.hexdigest(:sha256, key, payload)
       end
 
+      def self.secure_compare(expected : String, presented : String?) : Bool
+        return false unless presented
+        return false unless expected.bytesize == presented.bytesize
+        Crypto::Subtle.constant_time_compare(expected, presented)
+      end
+
       # Raises VerifyError on failure; returns true on success.
       def self.verify!(key : String, body : String, timestamp : Int64, signature : String,
                        skew : Int64 = DEFAULT_SKEW, now : Int64 = Time.utc.to_unix) : Bool
@@ -31,7 +37,7 @@ module CronLord
         raise VerifyError.new("timestamp skew #{drift}s exceeds #{skew}s") if drift > skew
 
         expected = digest_for(key, timestamp, body)
-        raise VerifyError.new("signature mismatch") unless Crypto::Subtle.constant_time_compare(expected, signature)
+        raise VerifyError.new("signature mismatch") unless secure_compare(expected, signature)
         true
       end
 
